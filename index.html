@@ -1,0 +1,2576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Animii — find your crew. watch together.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg:       #08090f;
+    --surface:  #10121c;
+    --card:     #14172a;
+    --border:   #1e2340;
+    --cyan:     #00d4ff;
+    --orange:   #ff6b35;
+    --pink:     #ff4fa3;
+    --text:     #e8eaf6;
+    --muted:    #6b7280;
+    --mono:     'JetBrains Mono', monospace;
+    --sans:     'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Phone shell ── */
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: var(--bg);
+    border-radius: 48px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 0 80px rgba(0,212,255,.08), 0 0 0 1px rgba(0,212,255,.04);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* notch */
+  .notch {
+    width: 120px; height: 34px;
+    background: #000;
+    border-radius: 0 0 20px 20px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 24px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  /* ── Screens container ── */
+  .screens {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── Nav bar ── */
+  .nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    transition: color .2s;
+  }
+  .nav-btn.active { color: var(--cyan); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* ════════════════════════════════
+     SCREEN: SWIPE
+  ════════════════════════════════ */
+  #screen-swipe {
+    padding: 0;
+  }
+
+  .swipe-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px 8px;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -1px;
+  }
+  .logo-text span { color: var(--cyan); }
+
+  .mode-tabs {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px;
+    margin: 0 16px 10px;
+    flex-shrink: 0;
+  }
+  .mode-tab {
+    flex: 1;
+    padding: 7px 0;
+    border: none;
+    background: none;
+    border-radius: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .mode-tab.active {
+    background: var(--cyan);
+    color: #000;
+    font-weight: 700;
+  }
+
+  /* Card stack */
+  .card-stack {
+    flex: 1;
+    position: relative;
+    margin: 0 16px;
+    overflow: visible;
+  }
+
+  .profile-card {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--card);
+    cursor: grab;
+    transition: transform .15s, opacity .15s;
+    user-select: none;
+    touch-action: none;
+  }
+  .profile-card:active { cursor: grabbing; }
+
+  .profile-card.behind-1 {
+    transform: scale(.94) translateY(18px);
+    z-index: 1;
+  }
+  .profile-card.behind-2 {
+    transform: scale(.88) translateY(36px);
+    z-index: 0;
+  }
+  .profile-card.front { z-index: 3; }
+
+  .profile-card.swipe-left {
+    animation: swipeLeft .35s forwards;
+  }
+  .profile-card.swipe-right {
+    animation: swipeRight .35s forwards;
+  }
+  .profile-card.swipe-up {
+    animation: swipeUp .35s forwards;
+  }
+
+  @keyframes swipeLeft {
+    to { transform: translateX(-130%) rotate(-20deg); opacity: 0; }
+  }
+  @keyframes swipeRight {
+    to { transform: translateX(130%) rotate(20deg); opacity: 0; }
+  }
+  @keyframes swipeUp {
+    to { transform: translateY(-130%) scale(1.05); opacity: 0; }
+  }
+
+  /* Avatar area */
+  .card-avatar {
+    width: 100%;
+    height: 58%;
+    background: linear-gradient(160deg, #0d0f1e 0%, #1a1230 50%, #0d1020 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-avatar::before {
+    content: '';
+    position: absolute;
+    bottom: -30px; left: 50%;
+    transform: translateX(-50%);
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(0,212,255,.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .live-badge {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: var(--orange);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: #fff;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .ep-tag {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: rgba(0,0,0,.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 9px;
+    border-radius: 20px;
+  }
+
+  /* Card info */
+  .card-info {
+    padding: 14px 16px 10px;
+  }
+  .card-name-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .card-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .card-age {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .card-watching {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-watching span {
+    color: var(--cyan);
+    font-family: var(--mono);
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .tag.cyan { border-color: rgba(0,212,255,.4); color: var(--cyan); }
+  .tag.orange { border-color: rgba(255,107,53,.4); color: var(--orange); }
+
+  /* Action buttons */
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 10px 16px 14px;
+    flex-shrink: 0;
+  }
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    cursor: pointer;
+    border-radius: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .action-btn:active { transform: scale(.93); }
+
+  .btn-pass {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+    padding: 14px 18px;
+  }
+  .btn-pass svg { width: 22px; height: 22px; }
+
+  .btn-watch {
+    background: linear-gradient(135deg, var(--cyan), #0099cc);
+    color: #000;
+    padding: 16px 24px;
+    font-size: 12px;
+    box-shadow: 0 0 24px rgba(0,212,255,.3);
+  }
+  .btn-watch svg { width: 26px; height: 26px; }
+
+  .btn-like {
+    background: var(--surface);
+    border: 1.5px solid rgba(255,79,163,.4);
+    color: var(--pink);
+    padding: 14px 18px;
+  }
+  .btn-like svg { width: 22px; height: 22px; }
+
+  /* Swipe hint overlays */
+  .hint-nope, .hint-like, .hint-watch {
+    position: absolute;
+    top: 24px;
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 3px solid;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    transform: rotate(-15deg);
+  }
+  .hint-nope {
+    left: 20px;
+    color: #ff4444;
+    border-color: #ff4444;
+    transform: rotate(-15deg);
+  }
+  .hint-like {
+    right: 20px;
+    color: var(--pink);
+    border-color: var(--pink);
+    transform: rotate(15deg);
+  }
+  .hint-watch {
+    left: 50%; top: 50%;
+    transform: translate(-50%,-50%) rotate(-5deg);
+    color: var(--cyan);
+    border-color: var(--cyan);
+  }
+
+  /* ════════════════════════════════
+     SCREEN: MATCHES
+  ════════════════════════════════ */
+  #screen-matches {
+    padding: 16px 0 0;
+  }
+  .screen-title {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    padding: 0 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .screen-title .accent { color: var(--cyan); }
+
+  .matches-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+
+  .match-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .match-item:hover { border-color: var(--cyan); }
+
+  .match-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .match-avatar.live-now { border-color: var(--orange); }
+
+  .match-info { flex: 1; min-width: 0; }
+  .match-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 3px;
+  }
+  .match-preview {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--mono);
+  }
+  .match-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+  }
+  .match-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .match-unread {
+    background: var(--cyan);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ════════════════════════════════
+     SCREEN: PROFILE
+  ════════════════════════════════ */
+  #screen-profile {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .profile-hero {
+    height: 260px;
+    background: linear-gradient(160deg, #0d0f1e, #1a1230, #0d1020);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .profile-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--bg));
+  }
+  .profile-body { padding: 0 20px 20px; }
+  .profile-name-big {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .profile-handle {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+
+  .profile-stat-row {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cyan);
+    display: block;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    display: block;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .genre-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* ════════════════════════════════
+     MATCH MODAL
+  ════════════════════════════════ */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s;
+  }
+  .modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--cyan);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .modal-headline {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  .modal-avatars {
+    display: flex;
+    align-items: center;
+    gap: -20px;
+    margin-bottom: 32px;
+  }
+  .modal-av {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 3px solid var(--cyan);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-av:last-child { border-color: var(--pink); margin-left: -20px; }
+  .modal-heart {
+    font-size: 28px;
+    margin: 0 6px;
+    animation: heartbeat .6s infinite alternate;
+  }
+  @keyframes heartbeat { from{transform:scale(1)} to{transform:scale(1.2)} }
+
+  .modal-btn {
+    background: linear-gradient(135deg, var(--cyan), #0099cc);
+    color: #000;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 14px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 12px;
+    width: 80%;
+    transition: transform .15s;
+  }
+  .modal-btn:active { transform: scale(.96); }
+  .modal-skip {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  /* ════════════════════════════════
+     ANIME SVG AVATARS
+  ════════════════════════════════ */
+  .avatar-svg { width: 160px; height: 200px; }
+
+  /* Scrollbar hide */
+  ::-webkit-scrollbar { display: none; }
+
+  /* Glow scanlines effect on cards */
+  .card-avatar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,212,255,.015) 3px,
+      rgba(0,212,255,.015) 4px
+    );
+    pointer-events: none;
+  }
+
+  .onboard-screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    z-index: 50;
+    transition: opacity .4s, transform .4s;
+  }
+  .onboard-screen.hidden {
+    opacity: 0;
+    transform: scale(.95);
+    pointer-events: none;
+  }
+  .onboard-logo {
+    font-family: var(--mono);
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin-bottom: 6px;
+  }
+  .onboard-logo span { color: var(--cyan); }
+  .onboard-tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 48px;
+  }
+  .onboard-tag .c { color: var(--cyan); }
+  .onboard-avatar-preview {
+    width: 160px;
+    height: 200px;
+    background: linear-gradient(160deg, #0d0f1e, #1a1230);
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .onboard-avatar-preview::before {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0,212,255,.15) 0%, transparent 70%);
+  }
+  .onboard-cta {
+    width: 100%;
+    background: linear-gradient(135deg, var(--cyan), #0099cc);
+    color: #000;
+    border: none;
+    padding: 16px;
+    border-radius: 16px;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 0 30px rgba(0,212,255,.25);
+  }
+  .onboard-cta:active { transform: scale(.97); }
+  .onboard-secondary {
+    background: none;
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    width: 100%;
+    padding: 14px;
+    border-radius: 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* ── Anthem player on match modal ── */
+  .anthem-player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0,212,255,.08);
+    border: 1px solid rgba(0,212,255,.25);
+    border-radius: 16px;
+    padding: 12px 16px;
+    width: 80%;
+    margin-bottom: 8px;
+  }
+  .anthem-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  .anthem-bars .bar {
+    width: 3px;
+    background: var(--cyan);
+    border-radius: 2px;
+    animation: barBounce .6s infinite alternate ease-in-out;
+  }
+  .anthem-bars .bar:nth-child(1) { height: 8px;  animation-delay: 0s; }
+  .anthem-bars .bar:nth-child(2) { height: 16px; animation-delay: .1s; }
+  .anthem-bars .bar:nth-child(3) { height: 12px; animation-delay: .2s; }
+  .anthem-bars .bar:nth-child(4) { height: 18px; animation-delay: .05s; }
+  .anthem-bars .bar:nth-child(5) { height: 10px; animation-delay: .15s; }
+  .anthem-bars.paused .bar { animation-play-state: paused; }
+  @keyframes barBounce {
+    from { transform: scaleY(.4); }
+    to   { transform: scaleY(1); }
+  }
+  .anthem-info { flex: 1; min-width: 0; }
+  .anthem-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .anthem-artist {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .anthem-timer {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--cyan);
+    flex-shrink: 0;
+  }
+  .anthem-progress-wrap {
+    width: 80%;
+    height: 3px;
+    background: rgba(0,212,255,.15);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .anthem-progress-bar {
+    height: 100%;
+    background: var(--cyan);
+    border-radius: 99px;
+    width: 0%;
+    transition: width .5s linear;
+  }
+
+  /* ════════════════════════════════
+     SCREEN: AVATAR BUILDER
+  ════════════════════════════════ */
+  #screen-avatar-builder {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ab-back-btn {
+    background: none;
+    border: none;
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ab-save-btn {
+    background: none;
+    border: 1.5px solid var(--cyan);
+    color: var(--cyan);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .ab-save-btn:hover { background: rgba(0,212,255,.1); }
+
+  .ab-preview-area {
+    flex-shrink: 0;
+    height: 190px;
+    background: linear-gradient(160deg, #0a0b14 0%, #12103a 50%, #080a18 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .ab-preview-area::before {
+    content: '';
+    position: absolute;
+    bottom: -10px; left: 50%;
+    transform: translateX(-50%);
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(0,212,255,.18) 0%, transparent 65%);
+    border-radius: 50%;
+  }
+  .ab-preview-wrap {
+    position: relative;
+    z-index: 1;
+  }
+
+  .ab-cat-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ab-cat-tab {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .ab-cat-tab.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,212,255,.08);
+  }
+
+  .ab-options-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 12px 12px;
+    scrollbar-width: none;
+  }
+  .ab-panel { display: none; }
+  .ab-panel.active { display: block; }
+
+  /* Color swatch grid */
+  .ab-color-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .ab-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    cursor: pointer;
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+    position: relative;
+  }
+  .ab-swatch:hover {
+    transform: scale(1.12);
+    border-color: rgba(0,212,255,.5);
+  }
+  .ab-swatch.selected {
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,212,255,.4);
+    transform: scale(1.1);
+  }
+
+  /* Style card grid */
+  .ab-style-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .ab-style-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 4px 4px 6px;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .ab-style-card:hover {
+    border-color: rgba(0,212,255,.5);
+  }
+  .ab-style-card.selected {
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,212,255,.3);
+  }
+  .ab-style-card svg {
+    border-radius: 6px;
+    background: #0a0c1a;
+    display: block;
+  }
+  .ab-style-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.2;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
+  }
+  .ab-style-card.selected .ab-style-label { color: var(--cyan); }
+
+  /* Bottom save button */
+  .ab-bottom-save {
+    flex-shrink: 0;
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--border);
+  }
+  .ab-save-full {
+    width: 100%;
+    background: linear-gradient(135deg, var(--cyan), #0099cc);
+    color: #000;
+    border: none;
+    padding: 14px;
+    border-radius: 14px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 0 24px rgba(0,212,255,.25);
+  }
+  .ab-save-full:active { transform: scale(.97); }
+
+  /* Particles */
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: var(--cyan);
+    border-radius: 50%;
+    opacity: 0;
+    animation: float var(--dur) var(--delay) infinite ease-in-out;
+  }
+  @keyframes float {
+    0% { opacity: 0; transform: translateY(0) translateX(0); }
+    20% { opacity: .6; }
+    80% { opacity: .3; }
+    100% { opacity: 0; transform: translateY(-80px) translateX(var(--drift)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>EP.01 ▮▮▮ ▐▌</span>
+  </div>
+
+  <!-- ── Onboarding splash ── -->
+  <div class="onboard-screen" id="onboard">
+    <!-- particles -->
+    <div class="particle" style="--dur:3s;--delay:0s;--drift:20px;top:60%;left:20%;"></div>
+    <div class="particle" style="--dur:4s;--delay:.5s;--drift:-15px;top:70%;left:70%;"></div>
+    <div class="particle" style="--dur:3.5s;--delay:1s;--drift:30px;top:80%;left:50%;"></div>
+    <div class="particle" style="--dur:2.5s;--delay:.2s;--drift:-25px;top:55%;left:35%;"></div>
+
+    <div class="onboard-logo">anim<span>ii</span></div>
+    <div class="onboard-tag"><span class="c">//</span> find your crew. watch together.</div>
+
+    <div class="onboard-avatar-preview">
+      <svg viewBox="0 0 160 200" width="130" height="162" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="ogi" cx="36%" cy="28%" r="65%"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="50%" stop-color="#00aaff"/><stop offset="100%" stop-color="#0077cc" stop-opacity="0.8"/></radialGradient>
+          <linearGradient id="ogf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5d0b0"/><stop offset="100%" stop-color="#e8b585"/></linearGradient>
+        </defs>
+        <path d="M14 200 L20 158 Q36 140 62 134 L80 144 L98 134 Q124 140 140 158 L146 200Z" fill="#16183a"/>
+        <path d="M62 134 L80 144 L80 200 L14 200 L20 158 Q36 140 62 134Z" fill="#1e2255"/>
+        <path d="M70 134 L80 144 L90 134 L80 130Z" fill="#e8b585"/>
+        <path d="M72 122 L88 122 L88 136 Q80 140 72 136Z" fill="#f0c895"/>
+        <path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="#1a0a3e"/>
+        <path d="M46 88 Q38 108 40 132 L50 124 L52 98Z" fill="#1a0a3e"/>
+        <path d="M114 88 Q122 108 120 132 L110 124 L108 98Z" fill="#1a0a3e"/>
+        <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="url(#ogf)"/>
+        <path d="M46 96 Q39 96 38 104 Q39 112 46 112 L48 104Z" fill="#eec898"/>
+        <path d="M114 96 Q121 96 122 104 Q121 112 114 112 L112 104Z" fill="#eec898"/>
+        <path d="M52 72 L44 44 L60 66Z" fill="#1a0a3e"/>
+        <path d="M64 60 L62 28 L76 56Z" fill="#1a0a3e"/>
+        <path d="M80 52 L80 20 L92 50Z" fill="#1a0a3e"/>
+        <path d="M96 60 L100 28 L112 62Z" fill="#1a0a3e"/>
+        <path d="M108 70 L116 44 L120 74Z" fill="#1a0a3e"/>
+        <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="#1a0a3e"/>
+        <path d="M51 80 Q62 73 73 77" stroke="#1a0a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <path d="M87 77 Q98 73 109 80" stroke="#1a0a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+        <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#ogi)"/>
+        <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+        <ellipse cx="60" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+        <circle cx="69" cy="93" r="2" fill="white" opacity="0.8"/>
+        <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M52 95 L49 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M75 95 L77 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+        <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#ogi)"/>
+        <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+        <ellipse cx="92" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+        <circle cx="101" cy="93" r="2" fill="white" opacity="0.8"/>
+        <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path d="M85 95 L83 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M108 95 L110 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="77" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+        <circle cx="83" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+        <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M46 88 Q38 104 40 122 L46 112 L50 94Z" fill="#1a0a3e"/>
+        <path d="M114 88 Q122 104 120 122 L114 112 L110 94Z" fill="#1a0a3e"/>
+      </svg>
+    </div>
+
+    <button class="onboard-cta" onclick="startApp()">▶ &nbsp;Start Your Arc</button>
+    <button class="onboard-secondary">Sign in</button>
+  </div>
+
+  <!-- ── Screens ── -->
+  <div class="screens" id="screens">
+
+    <!-- SWIPE SCREEN -->
+    <div class="screen active" id="screen-swipe">
+      <div class="swipe-header">
+        <div class="logo-text">anim<span>ii</span></div>
+        <button onclick="showScreen('profile')" style="background:none;border:none;cursor:pointer;">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="12" r="5" stroke="#6b7280" stroke-width="1.8"/>
+            <path d="M6 27c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mode-tabs">
+        <button class="mode-tab" onclick="setMode(this,'friends')">Friends</button>
+        <button class="mode-tab active" onclick="setMode(this,'romance')">Romance</button>
+        <button class="mode-tab" onclick="setMode(this,'watch')">Watch Party</button>
+      </div>
+
+      <div class="card-stack" id="card-stack">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <div class="actions">
+        <button class="action-btn btn-pass" onclick="swipeCard('left')" title="Pass">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+          PASS
+        </button>
+        <button class="action-btn btn-watch" onclick="swipeCard('up')" title="Watch Together">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+            <path d="M10 10l5-3-5-3v6z" fill="currentColor" stroke="none"/>
+          </svg>
+          WATCH TOGETHER
+        </button>
+        <button class="action-btn btn-like" onclick="swipeCard('right')" title="Like">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          LIKE
+        </button>
+      </div>
+    </div>
+
+    <!-- MATCHES SCREEN -->
+    <div class="screen" id="screen-matches">
+      <div class="screen-title">
+        <span class="accent">//</span> Matches
+        <span style="margin-left:auto;font-size:12px;color:var(--muted);">EP.03</span>
+      </div>
+      <div class="matches-list" id="matches-list">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+
+    <!-- PROFILE SCREEN -->
+    <div class="screen" id="screen-profile">
+      <div class="profile-hero">
+        <svg viewBox="0 0 160 200" width="140" height="175" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="phi" cx="36%" cy="28%" r="65%"><stop offset="0%" stop-color="#fff" stop-opacity="0.55"/><stop offset="50%" stop-color="#00aaff"/><stop offset="100%" stop-color="#0077cc" stop-opacity="0.8"/></radialGradient>
+            <linearGradient id="phf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5d0b0"/><stop offset="100%" stop-color="#e8b585"/></linearGradient>
+          </defs>
+          <path d="M14 200 L20 158 Q36 140 62 134 L80 144 L98 134 Q124 140 140 158 L146 200Z" fill="#16183a"/>
+          <path d="M62 134 L80 144 L80 200 L14 200 L20 158 Q36 140 62 134Z" fill="#1e2255"/>
+          <path d="M70 134 L80 144 L90 134 L80 130Z" fill="#e8b585"/>
+          <path d="M72 122 L88 122 L88 136 Q80 140 72 136Z" fill="#f0c895"/>
+          <path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="#1a0a3e"/>
+          <path d="M46 88 Q38 108 40 132 L50 124 L52 98Z" fill="#1a0a3e"/>
+          <path d="M114 88 Q122 108 120 132 L110 124 L108 98Z" fill="#1a0a3e"/>
+          <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="url(#phf)"/>
+          <path d="M46 96 Q39 96 38 104 Q39 112 46 112 L48 104Z" fill="#eec898"/>
+          <path d="M114 96 Q121 96 122 104 Q121 112 114 112 L112 104Z" fill="#eec898"/>
+          <path d="M52 72 L44 44 L60 66Z" fill="#1a0a3e"/>
+          <path d="M64 60 L62 28 L76 56Z" fill="#1a0a3e"/>
+          <path d="M80 52 L80 20 L92 50Z" fill="#1a0a3e"/>
+          <path d="M96 60 L100 28 L112 62Z" fill="#1a0a3e"/>
+          <path d="M108 70 L116 44 L120 74Z" fill="#1a0a3e"/>
+          <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="#1a0a3e"/>
+          <path d="M60 74 L56 82 L64 78Z" fill="#1a0a3e" opacity="0.85"/>
+          <path d="M74 64 L70 76 L78 70Z" fill="#1a0a3e" opacity="0.85"/>
+          <path d="M51 80 Q62 73 73 77" stroke="#1a0a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+          <path d="M87 77 Q98 73 109 80" stroke="#1a0a3e" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+          <path d="M51 80 Q62 73 73 77 Q62 80 51 83Z" fill="#1a0a3e" opacity="0.9"/>
+          <path d="M87 77 Q98 73 109 80 Q98 82 87 80Z" fill="#1a0a3e" opacity="0.9"/>
+          <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+          <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#phi)"/>
+          <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+          <ellipse cx="60" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+          <circle cx="69" cy="93" r="2" fill="white" opacity="0.8"/>
+          <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M52 95 L49 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M75 95 L77 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M52 97 Q57 110 75 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+          <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+          <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#phi)"/>
+          <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+          <ellipse cx="92" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+          <circle cx="101" cy="93" r="2" fill="white" opacity="0.8"/>
+          <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M85 95 L83 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M108 95 L110 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M85 97 Q89 110 108 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+          <circle cx="77" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+          <circle cx="83" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+          <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M46 88 Q38 104 40 122 L46 112 L50 94Z" fill="#1a0a3e"/>
+          <path d="M114 88 Q122 104 120 122 L114 112 L110 94Z" fill="#1a0a3e"/>
+        </svg>
+      </div>
+      <div class="profile-body">
+        <div class="profile-name-big">Kai Yoshida</div>
+        <div class="profile-handle">@kai_animii</div>
+        <button onclick="showScreen('avatar-builder')" style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--border);color:var(--cyan);font-family:var(--mono);font-size:12px;font-weight:700;padding:9px 18px;border-radius:20px;cursor:pointer;margin-bottom:16px;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Edit Avatar
+        </button>
+        <div class="profile-stat-row">
+          <div class="stat-box"><span class="stat-num">312</span><span class="stat-label">Watched</span></div>
+          <div class="stat-box"><span class="stat-num">47</span><span class="stat-label">Matches</span></div>
+          <div class="stat-box"><span class="stat-num">8</span><span class="stat-label">Watch Parties</span></div>
+        </div>
+        <div class="section-label">Favorite genres</div>
+        <div class="genre-tags">
+          <span class="tag cyan">Shonen</span>
+          <span class="tag cyan">Seinen</span>
+          <span class="tag">Isekai</span>
+          <span class="tag orange">Mecha</span>
+          <span class="tag">Slice of Life</span>
+        </div>
+        <div class="section-label">Currently watching</div>
+        <div class="genre-tags">
+          <span class="tag cyan">▶ Demon Slayer S4</span>
+          <span class="tag">Frieren</span>
+          <span class="tag">Dungeon Meshi</span>
+        </div>
+        <div class="section-label" style="margin-top:4px;">Hot take</div>
+        <div style="background:var(--surface);border:1px solid rgba(255,107,53,.3);border-radius:14px;padding:14px;font-size:13px;color:var(--text);line-height:1.5;">
+          <span style="color:var(--orange);font-family:var(--mono);font-size:11px;">HOT TAKE //</span><br>
+          "The Bleach TYBW arc is the best arc in the Big Three and it's not even close."
+        </div>
+      </div>
+    </div>
+
+    <!-- AVATAR BUILDER SCREEN -->
+    <div class="screen" id="screen-avatar-builder">
+      <div class="ab-header">
+        <button class="ab-back-btn" onclick="showScreen('profile')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Build Your Avatar
+        </button>
+        <button class="ab-save-btn" onclick="saveAvatar()">Save ✦</button>
+      </div>
+
+      <div class="ab-preview-area">
+        <div class="ab-preview-wrap" id="ab-preview"></div>
+      </div>
+
+      <div class="ab-cat-tabs" id="ab-cat-tabs">
+        <button class="ab-cat-tab active" onclick="switchABCat('skin',this)">Skin</button>
+        <button class="ab-cat-tab" onclick="switchABCat('hair',this)">Hair</button>
+        <button class="ab-cat-tab" onclick="switchABCat('haircol',this)">Hair Color</button>
+        <button class="ab-cat-tab" onclick="switchABCat('eyes',this)">Eye Style</button>
+        <button class="ab-cat-tab" onclick="switchABCat('eyecol',this)">Eye Color</button>
+        <button class="ab-cat-tab" onclick="switchABCat('extras',this)">Extras</button>
+      </div>
+
+      <div class="ab-options-panel">
+        <!-- Skin panel -->
+        <div class="ab-panel active" id="ab-panel-skin">
+          <div class="ab-color-grid" id="ab-skin-grid"></div>
+        </div>
+        <!-- Hair style panel -->
+        <div class="ab-panel" id="ab-panel-hair">
+          <div class="ab-style-grid" id="ab-hair-grid"></div>
+        </div>
+        <!-- Hair color panel -->
+        <div class="ab-panel" id="ab-panel-haircol">
+          <div class="ab-color-grid" id="ab-haircol-grid"></div>
+        </div>
+        <!-- Eye style panel -->
+        <div class="ab-panel" id="ab-panel-eyes">
+          <div class="ab-style-grid" id="ab-eyes-grid"></div>
+        </div>
+        <!-- Eye color panel -->
+        <div class="ab-panel" id="ab-panel-eyecol">
+          <div class="ab-color-grid" id="ab-eyecol-grid"></div>
+        </div>
+        <!-- Extras panel -->
+        <div class="ab-panel" id="ab-panel-extras">
+          <div class="ab-style-grid" id="ab-extras-grid"></div>
+        </div>
+      </div>
+
+      <div class="ab-bottom-save">
+        <button class="ab-save-full" onclick="saveAvatar()">Save Avatar ✦</button>
+      </div>
+    </div>
+
+  </div><!-- /screens -->
+
+  <!-- ── Bottom Nav ── -->
+  <nav class="nav" id="nav">
+    <button class="nav-btn active" id="nav-swipe" onclick="showScreen('swipe')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 12h3l3-8 4 16 3-8h3"/>
+      </svg>
+      Discover
+    </button>
+    <button class="nav-btn" id="nav-matches" onclick="showScreen('matches')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+      </svg>
+      Matches
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="showScreen('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      Profile
+    </button>
+  </nav>
+
+  <!-- Match modal -->
+  <div class="modal-overlay" id="match-modal">
+    <div class="modal-title">// NEW CONNECTION</div>
+    <div class="modal-headline">It's a Match! ✦</div>
+    <div class="modal-sub" id="modal-sub">You and <strong>?</strong> both liked each other</div>
+    <div class="modal-avatars">
+      <!-- User avatar (dark hair, cyan eyes) -->
+      <div class="modal-av">
+        <svg viewBox="0 0 160 200" width="80" height="100" xmlns="http://www.w3.org/2000/svg">
+          <defs><radialGradient id="m1i" cx="36%" cy="28%" r="65%"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="50%" stop-color="#00aaff"/><stop offset="100%" stop-color="#0077cc"/></radialGradient></defs>
+          <path d="M14 200 L22 160 Q50 140 80 146 Q110 140 138 160 L146 200Z" fill="#16183a"/>
+          <path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 66 Q108 34 80 32 Q52 34 48 66Z" fill="#1a0a3e"/>
+          <path d="M46 88 Q38 110 42 130 L50 122 L52 98Z" fill="#1a0a3e"/>
+          <path d="M114 88 Q122 110 118 130 L110 122 L108 98Z" fill="#1a0a3e"/>
+          <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="#f0c895"/>
+          <path d="M52 72 L44 44 L60 66Z" fill="#1a0a3e"/><path d="M64 60 L62 28 L76 56Z" fill="#1a0a3e"/><path d="M80 52 L80 20 L92 50Z" fill="#1a0a3e"/><path d="M96 60 L100 28 L112 62Z" fill="#1a0a3e"/>
+          <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="#1a0a3e"/>
+          <path d="M51 80 Q62 73 73 77" stroke="#1a0a3e" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M87 77 Q98 73 109 80" stroke="#1a0a3e" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+          <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#m1i)"/>
+          <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+          <ellipse cx="60" cy="91" rx="4" ry="2.8" fill="white" opacity="0.95"/>
+          <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+          <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#m1i)"/>
+          <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+          <ellipse cx="92" cy="91" rx="4" ry="2.8" fill="white" opacity="0.95"/>
+          <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="modal-heart">✦</div>
+      <!-- Match avatar (red hair, amber eyes) -->
+      <div class="modal-av">
+        <svg viewBox="0 0 160 200" width="80" height="100" xmlns="http://www.w3.org/2000/svg">
+          <defs><radialGradient id="m2i" cx="36%" cy="28%" r="65%"><stop offset="0%" stop-color="#fff" stop-opacity="0.5"/><stop offset="50%" stop-color="#cc3300"/><stop offset="100%" stop-color="#992200"/></radialGradient></defs>
+          <path d="M14 200 L22 160 Q50 140 80 146 Q110 140 138 160 L146 200Z" fill="#16183a"/>
+          <path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 66 Q108 34 80 32 Q52 34 48 66Z" fill="#cc3333"/>
+          <path d="M46 88 Q38 110 42 130 L50 122 L52 98Z" fill="#cc3333"/>
+          <path d="M114 88 Q122 110 118 130 L110 122 L108 98Z" fill="#cc3333"/>
+          <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="#f5d0b0"/>
+          <path d="M52 72 L44 44 L60 66Z" fill="#cc3333"/><path d="M64 60 L62 28 L76 56Z" fill="#cc3333"/><path d="M80 52 L80 20 L92 50Z" fill="#cc3333"/><path d="M96 60 L100 28 L112 62Z" fill="#cc3333"/>
+          <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="#cc3333"/>
+          <path d="M51 80 Q62 73 73 77" stroke="#8a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M87 77 Q98 73 109 80" stroke="#8a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+          <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#m2i)"/>
+          <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+          <ellipse cx="60" cy="91" rx="4" ry="2.8" fill="white" opacity="0.95"/>
+          <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+          <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#m2i)"/>
+          <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+          <ellipse cx="92" cy="91" rx="4" ry="2.8" fill="white" opacity="0.95"/>
+          <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <!-- Anthem player -->
+    <div class="anthem-player" id="anthem-player">
+      <div class="anthem-bars" id="anthem-bars">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+        <span class="bar"></span><span class="bar"></span>
+      </div>
+      <div class="anthem-info">
+        <div class="anthem-title" id="anthem-title">Blue Bird</div>
+        <div class="anthem-artist" id="anthem-artist">Ikimono-gakari</div>
+      </div>
+      <div class="anthem-timer" id="anthem-timer">0:10</div>
+    </div>
+    <div class="anthem-progress-wrap" id="anthem-progress-wrap">
+      <div class="anthem-progress-bar" id="anthem-progress-bar"></div>
+    </div>
+
+    <button class="modal-btn" onclick="closeModal()">Send a Message →</button>
+    <button class="modal-skip" onclick="closeModal()">Keep Swiping</button>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+const profiles = [
+  {
+    name: "Hana Mori", age: 22,
+    watching: "Frieren: Beyond Journey's End",
+    live: true, ep: "EP.12",
+    tags: ["Seinen", "Fantasy", "Healing anime only"],
+    hotTake: "Re:Zero is a masterpiece",
+    avatarType: "flame",
+    colors: { hair: "#cc3333", iris: "#aa4400" },
+    anthem: {
+      title: "Yuki no Hana",
+      artist: "Mika Nakashima",
+      // In production: real Spotify preview URL from user's connected account
+      previewUrl: "https://p.scdn.co/mp3-preview/placeholder-hana"
+    }
+  },
+  {
+    name: "Ren Takahashi", age: 24,
+    watching: "Dungeon Meshi",
+    live: false, ep: "EP.07",
+    tags: ["Shonen", "Isekai", "Dub defender"],
+    hotTake: "Naruto > Bleach",
+    avatarType: "silver",
+    colors: { hair: "#9999cc", iris: "#6633aa" },
+    anthem: {
+      title: "Blue Bird",
+      artist: "Ikimono-gakari",
+      previewUrl: "https://p.scdn.co/mp3-preview/placeholder-ren"
+    }
+  },
+  {
+    name: "Sora Iida", age: 21,
+    watching: "HxH rewatch",
+    live: true, ep: "EP.02",
+    tags: ["HxH stan", "No filler", "Sub only"],
+    hotTake: "Gon is overrated",
+    avatarType: "dark",
+    colors: { hair: "#222244", iris: "#6600cc" },
+    anthem: {
+      title: "Departure!",
+      artist: "Masatoshi Ono",
+      previewUrl: "https://p.scdn.co/mp3-preview/placeholder-sora"
+    }
+  },
+  {
+    name: "Yuki Abe", age: 23,
+    watching: "Blue Lock",
+    live: false, ep: "EP.09",
+    tags: ["Sports", "Shonen", "Manga reader"],
+    hotTake: "Sports anime > battle anime",
+    avatarType: "warm",
+    colors: { hair: "#663300", iris: "#336600" },
+    anthem: {
+      title: "Seishun Kyousoukyoku",
+      artist: "Sambomaster",
+      previewUrl: "https://p.scdn.co/mp3-preview/placeholder-yuki"
+    }
+  },
+];
+
+let currentIdx = 0;
+let matchCount = 0;
+const matched = [];
+
+// ── SVG AVATAR BUILDER ─────────────────────────────
+function buildAvatar(p, size = 160) {
+  const hc = p.colors.hair;
+  const ic = p.colors.iris;
+  const uid = 'av' + Math.random().toString(36).substr(2, 6);
+  const h = Math.round(size * 1.25);
+  return `<svg viewBox="0 0 160 200" width="${size}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="${uid}i" cx="36%" cy="28%" r="65%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="${ic}"/>
+      <stop offset="100%" stop-color="${ic}" stop-opacity="0.8"/>
+    </radialGradient>
+    <linearGradient id="${uid}f" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5d0b0"/>
+      <stop offset="100%" stop-color="#e8b585"/>
+    </linearGradient>
+    <linearGradient id="${uid}h" x1="0.2" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${hc}" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="${hc}"/>
+    </linearGradient>
+  </defs>
+
+  <!-- body -->
+  <path d="M14 200 L20 158 Q36 140 62 134 L80 144 L98 134 Q124 140 140 158 L146 200Z" fill="#16183a"/>
+  <path d="M62 134 L80 144 L80 200 L14 200 L20 158 Q36 140 62 134Z" fill="#1e2255"/>
+  <path d="M70 134 L80 144 L90 134 L80 130Z" fill="#e8b585"/>
+  <!-- neck -->
+  <path d="M72 122 L88 122 L88 136 Q80 140 72 136Z" fill="#f0c895"/>
+
+  <!-- hair back -->
+  <path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="${hc}"/>
+  <path d="M46 88 Q38 108 40 132 L50 124 L52 98Z" fill="${hc}"/>
+  <path d="M114 88 Q122 108 120 132 L110 124 L108 98Z" fill="${hc}"/>
+
+  <!-- head -->
+  <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="url(#${uid}f)"/>
+
+  <!-- ears -->
+  <path d="M46 96 Q39 96 38 104 Q39 112 46 112 L48 104Z" fill="#eec898"/>
+  <path d="M114 96 Q121 96 122 104 Q121 112 114 112 L112 104Z" fill="#eec898"/>
+
+  <!-- hair front spikes -->
+  <path d="M52 72 L44 44 L60 66Z" fill="url(#${uid}h)"/>
+  <path d="M64 60 L62 28 L76 56Z" fill="url(#${uid}h)"/>
+  <path d="M80 52 L80 20 L92 50Z" fill="url(#${uid}h)"/>
+  <path d="M96 60 L100 28 L112 62Z" fill="url(#${uid}h)"/>
+  <path d="M108 70 L116 44 L120 74Z" fill="url(#${uid}h)"/>
+  <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="${hc}"/>
+  <!-- bang strands -->
+  <path d="M60 74 L56 82 L64 78Z" fill="${hc}" opacity="0.85"/>
+  <path d="M74 64 L70 76 L78 70Z" fill="${hc}" opacity="0.85"/>
+  <path d="M90 64 L88 76 L96 70Z" fill="${hc}" opacity="0.85"/>
+
+  <!-- eyebrows — thick, match hair color -->
+  <path d="M51 80 Q62 73 73 77" stroke="${hc}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path d="M87 77 Q98 73 109 80" stroke="${hc}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <!-- eyebrow fill -->
+  <path d="M51 80 Q62 73 73 77 Q62 80 51 83Z" fill="${hc}" opacity="0.9"/>
+  <path d="M87 77 Q98 73 109 80 Q98 82 87 80Z" fill="${hc}" opacity="0.9"/>
+
+  <!-- LEFT EYE -->
+  <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+  <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#${uid}i)"/>
+  <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+  <ellipse cx="60" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+  <circle cx="69" cy="93" r="2" fill="white" opacity="0.8"/>
+  <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M52 95 L49 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M57 87 L55 83" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M75 95 L77 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M52 97 Q57 110 75 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- RIGHT EYE -->
+  <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+  <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#${uid}i)"/>
+  <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+  <ellipse cx="92" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+  <circle cx="101" cy="93" r="2" fill="white" opacity="0.8"/>
+  <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M85 95 L83 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M89 87 L87 83" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M108 95 L110 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M85 97 Q89 110 108 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- nose (two subtle dots) -->
+  <circle cx="77" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+  <circle cx="83" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+
+  <!-- mouth -->
+  <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M74 130 Q80 135 86 130" stroke="#d08878" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- side hair front over ears -->
+  <path d="M46 88 Q38 104 40 122 L46 112 L50 94Z" fill="${hc}"/>
+  <path d="M114 88 Q122 104 120 122 L114 112 L110 94Z" fill="${hc}"/>
+  </svg>`;
+}
+
+function buildSmallAvatar(p) {
+  const hc = p.colors.hair;
+  const ic = p.colors.iris;
+  const uid = 'sm' + Math.random().toString(36).substr(2, 5);
+  return `<svg viewBox="0 0 160 200" width="44" height="55" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="${uid}i" cx="36%" cy="28%" r="65%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="${ic}"/>
+      <stop offset="100%" stop-color="${ic}" stop-opacity="0.8"/>
+    </radialGradient>
+  </defs>
+  <path d="M14 200 L20 158 Q50 138 80 144 Q110 138 140 158 L146 200Z" fill="#16183a"/>
+  <path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="${hc}"/>
+  <path d="M46 88 Q38 108 40 130 L50 122 L52 98Z" fill="${hc}"/>
+  <path d="M114 88 Q122 108 120 130 L110 122 L108 98Z" fill="${hc}"/>
+  <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="#f0c895"/>
+  <path d="M52 72 L44 44 L60 66Z" fill="${hc}"/>
+  <path d="M64 60 L62 28 L76 56Z" fill="${hc}"/>
+  <path d="M80 52 L80 20 L92 50Z" fill="${hc}"/>
+  <path d="M96 60 L100 28 L112 62Z" fill="${hc}"/>
+  <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="${hc}"/>
+  <path d="M51 80 Q62 73 73 77" stroke="${hc}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path d="M87 77 Q98 73 109 80" stroke="${hc}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+  <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#${uid}i)"/>
+  <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+  <ellipse cx="60" cy="91" rx="4" ry="2.8" fill="white" opacity="0.9"/>
+  <circle cx="69" cy="93" r="1.8" fill="white" opacity="0.8"/>
+  <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+  <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#${uid}i)"/>
+  <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+  <ellipse cx="92" cy="91" rx="4" ry="2.8" fill="white" opacity="0.9"/>
+  <circle cx="101" cy="93" r="1.8" fill="white" opacity="0.8"/>
+  <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <circle cx="77" cy="116" r="1.6" fill="#c08868" opacity="0.5"/>
+  <circle cx="83" cy="116" r="1.6" fill="#c08868" opacity="0.5"/>
+  <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// ── RENDER CARDS ───────────────────────────────────
+function renderCards() {
+  const stack = document.getElementById('card-stack');
+  stack.innerHTML = '';
+
+  const toShow = profiles.slice(currentIdx, currentIdx + 3);
+  if (toShow.length === 0) {
+    stack.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);font-family:var(--mono);font-size:13px;gap:12px;">
+      <div style="font-size:32px;">✦</div>
+      <div>// no more profiles</div>
+      <div style="font-size:11px;">Check back tomorrow for new arcs</div>
+    </div>`;
+    return;
+  }
+
+  // Render back cards first
+  for (let i = toShow.length - 1; i >= 0; i--) {
+    const p = toShow[i];
+    const card = document.createElement('div');
+    card.className = 'profile-card ' + (i === 0 ? 'front' : i === 1 ? 'behind-1' : 'behind-2');
+    card.id = 'card-' + i;
+
+    card.innerHTML = `
+      <div class="card-avatar">
+        ${p.live ? '<div class="live-badge"><div class="live-dot"></div>LIVE</div>' : ''}
+        <div class="ep-tag">${p.ep}</div>
+        ${buildAvatar(p, 150)}
+        <div class="hint-nope" id="hint-nope-${i}">NOPE</div>
+        <div class="hint-like" id="hint-like-${i}">LIKE</div>
+        <div class="hint-watch" id="hint-watch-${i}">WATCH?</div>
+      </div>
+      <div class="card-info">
+        <div class="card-name-row">
+          <span class="card-name">${p.name}</span>
+          <span class="card-age">${p.age}</span>
+        </div>
+        <div class="card-watching">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--cyan)"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 9L8 7v10l4-5zm5 5l-4-5 4-5v10z"/></svg>
+          Watching <span>${p.watching}</span>
+        </div>
+        <div class="card-tags">
+          ${p.tags.map((t,idx)=>`<span class="tag ${idx===0?'cyan':idx===2?'orange':''}">${t}</span>`).join('')}
+        </div>
+      </div>`;
+
+    if (i === 0) setupDrag(card, i);
+    stack.appendChild(card);
+  }
+}
+
+// ── DRAG TO SWIPE ──────────────────────────────────
+function setupDrag(card, idx) {
+  let startX, startY, isDragging = false;
+
+  const onStart = (x, y) => {
+    startX = x; startY = y;
+    isDragging = true;
+    card.style.transition = 'none';
+  };
+  const onMove = (x, y) => {
+    if (!isDragging) return;
+    const dx = x - startX;
+    const dy = y - startY;
+    const rot = dx * 0.08;
+    card.style.transform = `translateX(${dx}px) translateY(${dy}px) rotate(${rot}deg)`;
+    const hintNope = card.querySelector('.hint-nope');
+    const hintLike = card.querySelector('.hint-like');
+    const hintWatch = card.querySelector('.hint-watch');
+    if (dy < -40 && Math.abs(dx) < 60) {
+      hintWatch.style.opacity = Math.min(Math.abs(dy) / 80, 1);
+      hintNope.style.opacity = 0; hintLike.style.opacity = 0;
+    } else if (dx < -30) {
+      hintNope.style.opacity = Math.min(Math.abs(dx) / 80, 1);
+      hintLike.style.opacity = 0; hintWatch.style.opacity = 0;
+    } else if (dx > 30) {
+      hintLike.style.opacity = Math.min(dx / 80, 1);
+      hintNope.style.opacity = 0; hintWatch.style.opacity = 0;
+    } else {
+      hintNope.style.opacity = 0; hintLike.style.opacity = 0; hintWatch.style.opacity = 0;
+    }
+  };
+  const onEnd = (x, y) => {
+    if (!isDragging) return;
+    isDragging = false;
+    card.style.transition = '';
+    const dx = x - startX;
+    const dy = y - startY;
+    if (dy < -80 && Math.abs(dx) < 80) swipeCard('up');
+    else if (dx < -80) swipeCard('left');
+    else if (dx > 80) swipeCard('right');
+    else { card.style.transform = ''; }
+  };
+
+  card.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => { if(isDragging) onMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', e => { if(isDragging) onEnd(e.clientX, e.clientY); });
+  card.addEventListener('touchstart', e => onStart(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+  window.addEventListener('touchmove', e => { if(isDragging) onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
+  window.addEventListener('touchend', e => { if(isDragging) onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); });
+}
+
+// ── SWIPE ACTION ───────────────────────────────────
+function swipeCard(direction) {
+  const front = document.querySelector('.profile-card.front');
+  if (!front) return;
+
+  const cls = direction === 'left' ? 'swipe-left' : direction === 'right' ? 'swipe-right' : 'swipe-up';
+  front.classList.add(cls);
+
+  const isMatch = direction === 'right' || direction === 'up';
+  const profile = profiles[currentIdx];
+
+  setTimeout(() => {
+    currentIdx++;
+    renderCards();
+    if (isMatch && profile && Math.random() > 0.35) {
+      showMatch(profile);
+      matched.push(profile);
+      renderMatches();
+    }
+  }, 340);
+}
+
+// ── MATCH MODAL + ANTHEM ────────────���──────────────
+let anthemAudio = null;
+let anthemTimer = null;
+const ANTHEM_DURATION = 10;
+
+function showMatch(profile) {
+  const modal = document.getElementById('match-modal');
+  document.getElementById('modal-sub').innerHTML = `You and <strong>${profile.name}</strong> both liked each other`;
+  modal.classList.add('show');
+
+  if (profile.anthem) {
+    document.getElementById('anthem-title').textContent = profile.anthem.title;
+    document.getElementById('anthem-artist').textContent = profile.anthem.artist;
+    document.getElementById('anthem-player').style.display = 'flex';
+    document.getElementById('anthem-progress-wrap').style.display = 'block';
+    playAnthem(profile.anthem.previewUrl);
+  } else {
+    document.getElementById('anthem-player').style.display = 'none';
+    document.getElementById('anthem-progress-wrap').style.display = 'none';
+  }
+}
+
+function playAnthem(url) {
+  stopAnthem();
+
+  // In production: url is the real Spotify preview URL from user's profile
+  // For demo the URL is a placeholder — audio UI still animates to show the feature
+  anthemAudio = new Audio(url);
+  anthemAudio.volume = 0.7;
+  anthemAudio.play().catch(() => {
+    // Browser blocked or URL is placeholder — keep UI running as demo
+  });
+
+  const bar = document.getElementById('anthem-progress-bar');
+  const timerEl = document.getElementById('anthem-timer');
+  const bars = document.getElementById('anthem-bars');
+  bars.classList.remove('paused');
+
+  let elapsed = 0;
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+
+  // Force reflow then start smooth transition
+  bar.getBoundingClientRect();
+  bar.style.transition = `width ${ANTHEM_DURATION}s linear`;
+  bar.style.width = '100%';
+
+  anthemTimer = setInterval(() => {
+    elapsed++;
+    const remaining = ANTHEM_DURATION - elapsed;
+    timerEl.textContent = `0:${String(remaining).padStart(2,'0')}`;
+    if (elapsed >= ANTHEM_DURATION) stopAnthem();
+  }, 1000);
+}
+
+function stopAnthem() {
+  if (anthemAudio) {
+    // Fade out over 800ms
+    const fadeInterval = setInterval(() => {
+      if (!anthemAudio) { clearInterval(fadeInterval); return; }
+      if (anthemAudio.volume > 0.05) {
+        anthemAudio.volume = Math.max(0, anthemAudio.volume - 0.1);
+      } else {
+        anthemAudio.pause();
+        anthemAudio = null;
+        clearInterval(fadeInterval);
+      }
+    }, 80);
+  }
+  if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; }
+  const bars = document.getElementById('anthem-bars');
+  if (bars) bars.classList.add('paused');
+}
+
+function closeModal() {
+  stopAnthem();
+  document.getElementById('match-modal').classList.remove('show');
+  // Reset timer display
+  document.getElementById('anthem-timer').textContent = `0:${String(ANTHEM_DURATION).padStart(2,'0')}`;
+  const bar = document.getElementById('anthem-progress-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+}
+
+// ── RENDER MATCHES ─────────────────────────────────
+const messages = [
+  "omg you're watching frieren too?? 👀",
+  "your hot take is actually correct tbh",
+  "wanna start a watch party tonight?",
+  "hunter x hunter never ending broke me",
+  "finally someone who gets it 😭",
+];
+
+function renderMatches() {
+  const list = document.getElementById('matches-list');
+  const allMatched = [...matched];
+  list.innerHTML = allMatched.length === 0
+    ? `<div style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;margin-top:40px;">// No matches yet. Keep swiping.</div>`
+    : allMatched.map((p, i) => `
+      <div class="match-item">
+        <div class="match-avatar ${p.live ? 'live-now' : ''}">${buildSmallAvatar(p)}</div>
+        <div class="match-info">
+          <div class="match-name">${p.name}</div>
+          <div class="match-preview">${messages[i % messages.length]}</div>
+        </div>
+        <div class="match-meta">
+          <div class="match-time">${i === 0 ? 'now' : i+'m ago'}</div>
+          ${i === 0 ? '<div class="match-unread">1</div>' : ''}
+        </div>
+      </div>`).join('');
+}
+
+// ── NAV + SCREENS ──────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const screen = document.getElementById('screen-' + name);
+  if (screen) screen.classList.add('active');
+  const navBtn = document.getElementById('nav-' + name);
+  if (navBtn) navBtn.classList.add('active');
+  // avatar-builder has no nav btn — highlight profile btn as parent
+  if (name === 'avatar-builder') {
+    const profileNav = document.getElementById('nav-profile');
+    if (profileNav) profileNav.classList.add('active');
+    refreshABPreview();
+  }
+}
+
+function setMode(btn, mode) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── ONBOARDING ─────────────────────────────────────
+function startApp() {
+  document.getElementById('onboard').classList.add('hidden');
+  setTimeout(() => { document.getElementById('onboard').style.display = 'none'; }, 400);
+}
+
+
+// ══════════════════════════════════════════════════
+//  AVATAR BUILDER
+// ══════════════════════════════════════════════════
+
+// ── Avatar state ────────────────────────────────────
+let avatarState = {
+  skin: '#f0c895',
+  hairStyle: 'spiky',
+  hairColor: '#1a1a2e',
+  eyeStyle: 'standard',
+  eyeColor: '#00aacc',
+  accessory: 'none',
+};
+
+// ── Skin tones ───────────────────────────────────────
+const SKIN_TONES = [
+  { id:'porcelain', label:'Porcelain', color:'#f8eee0' },
+  { id:'fair',      label:'Fair',      color:'#f5d5b5' },
+  { id:'light',     label:'Light',     color:'#f0c895' },
+  { id:'medlight',  label:'Med-Light', color:'#e8a870' },
+  { id:'medium',    label:'Medium',    color:'#d4856a' },
+  { id:'tan',       label:'Tan',       color:'#b86840' },
+  { id:'caramel',   label:'Caramel',   color:'#8b5030' },
+  { id:'brown',     label:'Brown',     color:'#6b3820' },
+  { id:'deep',      label:'Deep',      color:'#3d1e10' },
+];
+
+// ── Hair styles ───────────────────────────────────────
+// HC = hair color placeholder, SK = skin placeholder
+const HAIR_STYLES = [
+  {
+    id:'spiky', label:'Spiky',
+    back:`<path d="M46 88 Q46 50 80 44 Q114 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="HC"/>
+          <path d="M46 88 Q38 108 40 132 L50 124 L52 98Z" fill="HC"/>
+          <path d="M114 88 Q122 108 120 132 L110 124 L108 98Z" fill="HC"/>`,
+    front:`<path d="M52 72 L44 44 L60 66Z" fill="HC"/>
+           <path d="M64 60 L62 28 L76 56Z" fill="HC"/>
+           <path d="M80 52 L80 20 L92 50Z" fill="HC"/>
+           <path d="M96 60 L100 28 L112 62Z" fill="HC"/>
+           <path d="M108 70 L116 44 L120 74Z" fill="HC"/>
+           <path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 88 Q80 46 46 88 Q46 80 52 72Z" fill="HC"/>
+           <path d="M46 88 Q38 104 40 122 L46 112 L50 94Z" fill="HC"/>
+           <path d="M114 88 Q122 104 120 122 L114 112 L110 94Z" fill="HC"/>`,
+  },
+  {
+    id:'long-straight', label:'Long Straight',
+    back:`<path d="M46 88 Q44 50 80 44 Q116 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="HC"/>
+          <path d="M42 88 Q36 120 36 195 L52 195 L52 100Z" fill="HC"/>
+          <path d="M118 88 Q124 120 124 195 L108 195 L108 100Z" fill="HC"/>`,
+    front:`<path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 90 Q80 48 46 90 Q46 80 52 72Z" fill="HC"/>
+           <path d="M46 90 Q38 110 38 150 L48 140 L50 95Z" fill="HC"/>
+           <path d="M114 90 Q122 110 122 150 L112 140 L110 95Z" fill="HC"/>
+           <path d="M56 68 L54 80 L62 74Z" fill="HC" opacity="0.85"/>`,
+  },
+  {
+    id:'long-wavy', label:'Long Wavy',
+    back:`<path d="M46 88 Q44 50 80 44 Q116 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="HC"/>
+          <path d="M42 90 Q34 110 38 130 Q42 150 36 170 Q32 185 40 195 L54 195 Q46 182 50 168 Q54 150 50 130 Q46 110 52 98Z" fill="HC"/>
+          <path d="M118 90 Q126 110 122 130 Q118 150 124 170 Q128 185 120 195 L106 195 Q114 182 110 168 Q106 150 110 130 Q114 110 108 98Z" fill="HC"/>`,
+    front:`<path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 90 Q80 48 46 90 Q46 80 52 72Z" fill="HC"/>
+           <path d="M46 90 Q38 112 42 130 Q46 148 40 165 L50 155 L48 95Z" fill="HC"/>
+           <path d="M114 90 Q122 112 118 130 Q114 148 120 165 L110 155 L112 95Z" fill="HC"/>`,
+  },
+  {
+    id:'afro', label:'Afro',
+    back:`<path d="M80 44 Q56 30 36 44 Q20 56 22 78 Q24 100 36 110 Q30 90 36 72 Q50 40 80 38 Q110 40 124 72 Q130 90 124 110 Q136 100 138 78 Q140 56 124 44 Q104 30 80 44Z" fill="HC"/>`,
+    front:`<path d="M80 38 Q50 36 32 56 Q18 72 22 96 Q26 118 40 128 Q34 112 36 94 Q40 60 80 48 Q120 60 124 94 Q126 112 120 128 Q134 118 138 96 Q142 72 128 56 Q110 36 80 38Z" fill="HC"/>
+           <path d="M46 90 Q40 108 42 126 L50 118 L50 96Z" fill="HC"/>
+           <path d="M114 90 Q120 108 118 126 L110 118 L110 96Z" fill="HC"/>
+           <ellipse cx="80" cy="70" rx="46" ry="38" fill="HC" opacity="0.6"/>`,
+  },
+  {
+    id:'bob', label:'Bob Cut',
+    back:`<path d="M46 88 Q44 50 80 44 Q116 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="HC"/>
+          <path d="M40 88 Q38 108 40 130 L50 130 L50 96Z" fill="HC"/>
+          <path d="M120 88 Q122 108 120 130 L110 130 L110 96Z" fill="HC"/>`,
+    front:`<path d="M52 72 Q66 58 80 52 Q94 58 108 70 Q114 80 114 90 Q80 48 46 90 Q46 80 52 72Z" fill="HC"/>
+           <path d="M46 90 Q38 108 40 130 Q60 136 80 136 Q100 136 120 130 Q122 108 114 90" fill="none" stroke="HC" stroke-width="0"/>
+           <path d="M40 90 Q38 110 40 130 Q60 138 80 138 Q100 138 120 130 Q122 110 120 90 L110 95 Q80 118 50 95Z" fill="HC"/>`,
+  },
+  {
+    id:'pixie', label:'Pixie',
+    back:`<path d="M50 82 Q50 54 80 48 Q110 54 110 82 L108 64 Q104 42 80 40 Q56 42 52 64Z" fill="HC"/>`,
+    front:`<path d="M54 76 Q68 62 80 58 Q92 62 106 76 Q110 84 110 90 Q80 54 50 90 Q50 84 54 76Z" fill="HC"/>
+           <path d="M50 90 Q44 102 46 114 L52 108 L52 94Z" fill="HC"/>
+           <path d="M110 90 Q116 102 114 114 L108 108 L108 94Z" fill="HC"/>
+           <path d="M58 70 L56 62 L66 68Z" fill="HC"/>
+           <path d="M74 62 L76 54 L84 60Z" fill="HC"/>
+           <path d="M88 64 L92 56 L100 66Z" fill="HC"/>`,
+  },
+  {
+    id:'ponytail', label:'Ponytail',
+    back:`<path d="M48 86 Q48 52 80 46 Q112 52 112 86 L110 66 Q106 36 80 34 Q54 36 50 66Z" fill="HC"/>
+          <path d="M76 50 L76 48 Q80 30 84 48 L88 130 Q84 150 80 195 Q76 150 72 130Z" fill="HC"/>`,
+    front:`<path d="M54 74 Q68 60 80 54 Q92 60 106 74 Q112 82 112 90 Q80 50 48 90 Q48 82 54 74Z" fill="HC"/>
+           <path d="M48 90 Q40 108 42 122 L50 116 L50 96Z" fill="HC"/>
+           <path d="M112 90 Q120 108 118 122 L110 116 L110 96Z" fill="HC"/>
+           <path d="M74 56 Q76 50 80 48 Q84 50 86 56 L88 68 Q84 72 80 72 Q76 72 72 68Z" fill="HC"/>`,
+  },
+  {
+    id:'twin-tails', label:'Twin Tails',
+    back:`<path d="M48 86 Q48 52 80 46 Q112 52 112 86 L110 66 Q106 36 80 34 Q54 36 50 66Z" fill="HC"/>
+          <path d="M40 108 Q32 118 34 150 Q36 175 42 195 L56 195 Q50 172 50 148 Q50 124 48 112Z" fill="HC"/>
+          <path d="M120 108 Q128 118 126 150 Q124 175 118 195 L104 195 Q110 172 110 148 Q110 124 112 112Z" fill="HC"/>`,
+    front:`<path d="M54 74 Q68 60 80 54 Q92 60 106 74 Q112 82 112 90 Q80 50 48 90 Q48 82 54 74Z" fill="HC"/>
+           <path d="M48 90 Q38 106 40 114 L52 116 Q50 108 50 96Z" fill="HC"/>
+           <path d="M112 90 Q122 106 120 114 L108 116 Q110 108 110 96Z" fill="HC"/>`,
+  },
+  {
+    id:'side-swept', label:'Side Swept',
+    back:`<path d="M48 86 Q48 52 80 46 Q112 52 112 86 L110 66 Q106 36 80 34 Q54 36 50 66Z" fill="HC"/>
+          <path d="M112 86 Q122 108 118 130 L108 122 L108 96Z" fill="HC"/>`,
+    front:`<path d="M48 86 Q48 72 54 66 Q70 44 106 62 Q116 70 116 86 Q100 56 72 60 Q56 66 50 86Z" fill="HC"/>
+           <path d="M50 86 Q44 102 46 118 L54 112 L52 92Z" fill="HC"/>
+           <path d="M54 66 Q80 44 112 58 L108 70 Q86 52 60 68Z" fill="HC" opacity="0.8"/>
+           <path d="M48 86 Q60 70 80 64 Q100 60 112 72 Q116 80 116 88 Q98 60 66 66 Q50 72 46 88Z" fill="HC"/>`,
+  },
+  {
+    id:'mohawk', label:'Mohawk',
+    back:`<path d="M72 88 Q72 54 80 44 Q88 54 88 88 L86 60 Q84 36 80 30 Q76 36 74 60Z" fill="HC"/>`,
+    front:`<path d="M74 86 Q74 56 80 40 Q86 56 86 86 Q84 60 80 38 Q76 60 74 86Z" fill="HC"/>
+           <path d="M72 88 Q66 100 68 118 L76 112 L76 94Z" fill="HC"/>
+           <path d="M88 88 Q94 100 92 118 L84 112 L84 94Z" fill="HC"/>
+           <path d="M76 60 L74 44 L80 52Z" fill="HC"/>
+           <path d="M80 50 L80 22 L84 42Z" fill="HC"/>
+           <path d="M84 58 L86 40 L90 56Z" fill="HC"/>`,
+  },
+  {
+    id:'undercut', label:'Undercut',
+    back:`<path d="M46 88 Q46 54 80 48 Q114 54 114 88 L112 70 Q108 40 80 38 Q52 40 48 70Z" fill="HC" opacity="0.35"/>`,
+    front:`<path d="M60 72 Q70 52 80 48 Q90 52 100 72 Q106 80 106 88 Q80 52 54 88 Q54 80 60 72Z" fill="HC"/>
+           <path d="M58 74 L54 58 L68 70Z" fill="HC"/>
+           <path d="M72 60 L74 44 L84 58Z" fill="HC"/>
+           <path d="M88 60 L90 42 L100 62Z" fill="HC"/>
+           <path d="M60 72 Q70 52 80 48 Q90 52 100 72 Q106 84 106 92 Q80 58 54 92 Q54 84 60 72Z" fill="HC"/>`,
+  },
+  {
+    id:'curly', label:'Curly',
+    back:`<path d="M46 88 Q44 50 80 44 Q116 50 114 88 L110 68 Q106 36 80 34 Q54 36 50 68Z" fill="HC"/>
+          <path d="M40 90 Q36 110 38 130 L50 122 L48 96Z" fill="HC"/>
+          <path d="M120 90 Q124 110 122 130 L110 122 L112 96Z" fill="HC"/>`,
+    front:`<path d="M54 80 Q50 68 56 60 Q62 50 72 54 Q68 58 68 66 Q70 58 76 54 Q82 50 86 54 Q82 58 80 66 Q84 56 90 54 Q96 52 100 58 Q104 64 102 74 Q108 66 112 72 Q116 80 114 90 Q80 50 46 90 Q46 82 54 80Z" fill="HC"/>
+           <path d="M46 90 Q40 104 42 116 Q44 106 52 106 Q46 118 50 126 L54 120 L50 96Z" fill="HC"/>
+           <path d="M114 90 Q120 104 118 116 Q116 106 108 106 Q114 118 110 126 L106 120 L110 96Z" fill="HC"/>`,
+  },
+  {
+    id:'braids', label:'Braids',
+    back:`<path d="M48 86 Q48 52 80 46 Q112 52 112 86 L110 66 Q106 36 80 34 Q54 36 50 66Z" fill="HC"/>`,
+    front:`<path d="M52 78 Q66 60 80 54 Q94 60 108 78 Q114 86 114 92 Q80 54 46 92 Q46 86 52 78Z" fill="HC"/>
+           <path d="M46 92 Q40 104 40 120 L44 116 L44 98 Q38 110 38 130 L44 126 L44 118 Q38 134 40 155 L46 150 L44 130 Q40 150 44 170 L50 166 L46 148 Q44 165 48 182 L54 178 L48 158 L52 195 L42 195 Q38 175 38 155 Q34 134 38 114 Q40 96 46 92Z" fill="HC"/>
+           <path d="M114 92 Q120 104 120 120 L116 116 L116 98 Q122 110 122 130 L116 126 L116 118 Q122 134 120 155 L114 150 L116 130 Q120 150 116 170 L110 166 L114 148 Q116 165 112 182 L106 178 L112 158 L108 195 L118 195 Q122 175 122 155 Q126 134 122 114 Q120 96 114 92Z" fill="HC"/>`,
+  },
+  {
+    id:'bun', label:'Messy Bun',
+    back:`<path d="M50 84 Q50 54 80 48 Q110 54 110 84 L108 64 Q104 40 80 38 Q56 40 52 64Z" fill="HC"/>
+          <path d="M48 88 Q40 106 42 124 L52 116 L52 96Z" fill="HC"/>
+          <path d="M112 88 Q120 106 118 124 L108 116 L108 96Z" fill="HC"/>`,
+    front:`<path d="M54 76 Q68 62 80 56 Q92 62 106 76 Q112 84 112 90 Q80 54 48 90 Q48 84 54 76Z" fill="HC"/>
+           <path d="M48 90 Q40 104 42 116 L52 110 L52 96Z" fill="HC"/>
+           <path d="M112 90 Q120 104 118 116 L108 110 L108 96Z" fill="HC"/>
+           <circle cx="80" cy="40" r="18" fill="HC"/>
+           <path d="M66 42 Q68 32 80 30 Q92 32 94 42" fill="none" stroke="HC" stroke-width="3" opacity="0.6"/>
+           <path d="M70 34 L72 26 L78 32Z" fill="HC" opacity="0.7"/>
+           <path d="M82 30 L86 22 L90 32Z" fill="HC" opacity="0.7"/>`,
+  },
+  {
+    id:'buzz', label:'Buzz Cut',
+    back:`<path d="M50 86 Q50 56 80 50 Q110 56 110 86 L108 68 Q104 44 80 42 Q56 44 52 68Z" fill="HC" opacity="0.7"/>`,
+    front:`<path d="M56 78 Q68 64 80 60 Q92 64 104 78 Q110 86 110 92 Q80 58 50 92 Q50 86 56 78Z" fill="HC" opacity="0.85"/>
+           <path d="M50 92 Q44 102 46 112 L52 108 L52 94Z" fill="HC" opacity="0.7"/>
+           <path d="M110 92 Q116 102 114 112 L108 108 L108 94Z" fill="HC" opacity="0.7"/>`,
+  },
+  {
+    id:'middle-part', label:'Middle Part',
+    back:`<path d="M46 88 Q44 50 80 44 Q116 50 114 88 L112 68 Q108 34 80 32 Q52 34 48 68Z" fill="HC"/>
+          <path d="M40 88 Q34 110 36 140 L50 130 L48 96Z" fill="HC"/>
+          <path d="M120 88 Q126 110 124 140 L110 130 L112 96Z" fill="HC"/>`,
+    front:`<path d="M80 52 L80 46" stroke="HC" stroke-width="2" fill="none"/>
+           <path d="M80 54 Q62 56 52 70 Q46 80 46 92 Q58 64 80 58Z" fill="HC"/>
+           <path d="M80 54 Q98 56 108 70 Q114 80 114 92 Q102 64 80 58Z" fill="HC"/>
+           <path d="M46 92 Q38 110 40 132 Q50 145 52 155 L56 145 Q54 132 50 118 L50 96Z" fill="HC"/>
+           <path d="M114 92 Q122 110 120 132 Q110 145 108 155 L104 145 Q106 132 110 118 L110 96Z" fill="HC"/>
+           <path d="M52 70 L48 82 L58 76Z" fill="HC" opacity="0.85"/>
+           <path d="M108 70 L112 82 L102 76Z" fill="HC" opacity="0.85"/>`,
+  },
+];
+
+// ── Hair colors ───────────────────────────────────────
+const HAIR_COLORS = [
+  { id:'black',     color:'#1a1a2e' },
+  { id:'dkbrown',   color:'#3d1f0a' },
+  { id:'brown',     color:'#7a4518' },
+  { id:'auburn',    color:'#8b3a1a' },
+  { id:'red',       color:'#cc1a1a' },
+  { id:'orange',    color:'#e05510' },
+  { id:'honey',     color:'#c88820' },
+  { id:'blonde',    color:'#d4b040' },
+  { id:'platinum',  color:'#e8e0c0' },
+  { id:'white',     color:'#f0f0f0' },
+  { id:'silver',    color:'#a0a8c0' },
+  { id:'pink',      color:'#e060a0' },
+  { id:'magenta',   color:'#c01880' },
+  { id:'purple',    color:'#6020a0' },
+  { id:'blue',      color:'#1840c0' },
+  { id:'teal',      color:'#108888' },
+  { id:'cyan',      color:'#00aacc' },
+  { id:'mint',      color:'#38c898' },
+];
+
+// ── Eye styles ────────────────────────────────────────
+const EYE_STYLES = [
+  {
+    id:'standard', label:'Standard',
+    svg: function(ec,uid) { return `
+      <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+      <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+      <ellipse cx="60" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+      <circle cx="69" cy="93" r="2" fill="white" opacity="0.8"/>
+      <path d="M52 95 Q57 83 64 83 Q71 83 75 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M52 95 L49 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M75 95 L77 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M52 97 Q57 110 75 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+      <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+      <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+      <ellipse cx="92" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+      <circle cx="101" cy="93" r="2" fill="white" opacity="0.8"/>
+      <path d="M85 95 Q89 83 96 83 Q103 83 108 95" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M85 95 L83 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M108 95 L110 90" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M85 97 Q89 110 108 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+    `; }
+  },
+  {
+    id:'sharp', label:'Sharp',
+    svg: function(ec,uid) { return `
+      <path d="M51 97 L54 87 Q64 83 75 90 L74 97 Q70 106 64 106 Q57 106 51 97Z" fill="white"/>
+      <ellipse cx="63" cy="96" rx="10" ry="9.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="63" cy="97" rx="5.5" ry="6.5" fill="#07051a"/>
+      <ellipse cx="59" cy="92" rx="3.5" ry="2.5" fill="white" opacity="0.95"/>
+      <circle cx="68" cy="94" r="1.8" fill="white" opacity="0.8"/>
+      <path d="M51 97 L54 87 Q64 82 75 90" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M51 97 L48 94" stroke="#0d0d1a" stroke-width="2" stroke-linecap="round"/>
+      <path d="M75 90 L78 87" stroke="#0d0d1a" stroke-width="2" stroke-linecap="round"/>
+      <path d="M51 98 Q56 106 74 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+      <path d="M86 97 L89 87 Q96 83 108 90 L107 97 Q103 106 96 106 Q89 106 86 97Z" fill="white"/>
+      <ellipse cx="96" cy="96" rx="10" ry="9.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="96" cy="97" rx="5.5" ry="6.5" fill="#07051a"/>
+      <ellipse cx="92" cy="92" rx="3.5" ry="2.5" fill="white" opacity="0.95"/>
+      <circle cx="101" cy="94" r="1.8" fill="white" opacity="0.8"/>
+      <path d="M86 97 L89 87 Q96 82 108 90" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M86 97 L83 94" stroke="#0d0d1a" stroke-width="2" stroke-linecap="round"/>
+      <path d="M108 90 L111 87" stroke="#0d0d1a" stroke-width="2" stroke-linecap="round"/>
+      <path d="M86 98 Q90 106 108 98" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+    `; }
+  },
+  {
+    id:'soft', label:'Soft',
+    svg: function(ec,uid) { return `
+      <circle cx="64" cy="96" r="13" fill="white"/>
+      <ellipse cx="64" cy="96" rx="12" ry="13" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="64" cy="97" rx="7" ry="8.5" fill="#07051a"/>
+      <ellipse cx="59" cy="90" rx="4.8" ry="3.5" fill="white" opacity="0.95"/>
+      <circle cx="70" cy="92" r="2.4" fill="white" opacity="0.85"/>
+      <path d="M52 96 Q52 83 64 83 Q76 83 76 96" stroke="#0d0d1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <circle cx="56" cy="108" r="5" fill="#ff9999" opacity="0.22"/>
+      <circle cx="96" cy="96" r="13" fill="white"/>
+      <ellipse cx="96" cy="96" rx="12" ry="13" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="96" cy="97" rx="7" ry="8.5" fill="#07051a"/>
+      <ellipse cx="91" cy="90" rx="4.8" ry="3.5" fill="white" opacity="0.95"/>
+      <circle cx="102" cy="92" r="2.4" fill="white" opacity="0.85"/>
+      <path d="M84 96 Q84 83 96 83 Q108 83 108 96" stroke="#0d0d1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <circle cx="104" cy="108" r="5" fill="#ff9999" opacity="0.22"/>
+    `; }
+  },
+  {
+    id:'narrow', label:'Narrow',
+    svg: function(ec,uid) { return `
+      <path d="M52 98 Q57 92 64 92 Q71 92 75 98 Q71 104 64 104 Q57 104 52 98Z" fill="white"/>
+      <ellipse cx="64" cy="98" rx="10" ry="6" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="64" cy="98.5" rx="5.5" ry="4.5" fill="#07051a"/>
+      <ellipse cx="60" cy="96" rx="3" ry="2" fill="white" opacity="0.95"/>
+      <path d="M52 98 Q57 91 64 91 Q71 91 75 98" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M52 98 L49 96" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M75 98 L77 96" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M52 99 Q57 105 75 99" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+      <path d="M85 98 Q89 92 96 92 Q103 92 108 98 Q103 104 96 104 Q89 104 85 98Z" fill="white"/>
+      <ellipse cx="96" cy="98" rx="10" ry="6" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="96" cy="98.5" rx="5.5" ry="4.5" fill="#07051a"/>
+      <ellipse cx="92" cy="96" rx="3" ry="2" fill="white" opacity="0.95"/>
+      <path d="M85 98 Q89 91 96 91 Q103 91 108 98" stroke="#0d0d1a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M85 98 L83 96" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M108 98 L110 96" stroke="#0d0d1a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M85 99 Q89 105 108 99" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+    `; }
+  },
+  {
+    id:'half-lidded', label:'Half-Lidded',
+    svg: function(ec,uid) { return `
+      <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+      <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+      <ellipse cx="60" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+      <circle cx="69" cy="93" r="2" fill="white" opacity="0.8"/>
+      <path d="M52 91 Q57 84 64 84 Q71 84 75 91" stroke="#0d0d1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M52 91 Q58 88 64 88 Q70 88 75 91 L75 91 Q70 86 64 86 Q58 86 52 91Z" fill="#0d0d1a"/>
+      <path d="M52 97 Q57 110 75 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+      <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+      <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+      <ellipse cx="92" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+      <circle cx="101" cy="93" r="2" fill="white" opacity="0.8"/>
+      <path d="M85 91 Q89 84 96 84 Q103 84 108 91" stroke="#0d0d1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M85 91 Q91 88 96 88 Q102 88 108 91 L108 91 Q102 86 96 86 Q90 86 85 91Z" fill="#0d0d1a"/>
+      <path d="M85 97 Q89 110 108 97" stroke="#c08868" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.6"/>
+    `; }
+  },
+];
+
+// ── Eye colors ────────────────────────────────────────
+const EYE_COLORS = [
+  { id:'brown',  color:'#6b3510' },
+  { id:'dkbrn',  color:'#3d1a08' },
+  { id:'black',  color:'#111122' },
+  { id:'blue',   color:'#1870d0' },
+  { id:'sky',    color:'#40a8e8' },
+  { id:'cyan',   color:'#00c8e8' },
+  { id:'teal',   color:'#008888' },
+  { id:'green',  color:'#1a8840' },
+  { id:'hazel',  color:'#806030' },
+  { id:'gray',   color:'#808898' },
+  { id:'purple', color:'#6030a8' },
+  { id:'violet', color:'#8020c8' },
+  { id:'red',    color:'#c01818' },
+  { id:'amber',  color:'#c87818' },
+  { id:'gold',   color:'#c8a010' },
+  { id:'pink',   color:'#d040a0' },
+];
+
+// ── Accessories ───────────────────────────────────────
+const ACCESSORIES = [
+  { id:'none', label:'None',
+    svg: `` },
+  { id:'round-glasses', label:'Round Glasses',
+    svg: `<circle cx="64" cy="96" r="13" fill="none" stroke="#888" stroke-width="2.5" opacity="0.9"/>
+          <circle cx="96" cy="96" r="13" fill="none" stroke="#888" stroke-width="2.5" opacity="0.9"/>
+          <line x1="77" y1="96" x2="83" y2="96" stroke="#888" stroke-width="2" opacity="0.9"/>
+          <line x1="51" y1="94" x2="46" y2="92" stroke="#888" stroke-width="2" opacity="0.8"/>
+          <line x1="109" y1="94" x2="114" y2="92" stroke="#888" stroke-width="2" opacity="0.8"/>` },
+  { id:'square-glasses', label:'Square Glasses',
+    svg: `<rect x="51" y="87" width="25" height="17" rx="2" fill="none" stroke="#888" stroke-width="2.5" opacity="0.9"/>
+          <rect x="84" y="87" width="25" height="17" rx="2" fill="none" stroke="#888" stroke-width="2.5" opacity="0.9"/>
+          <line x1="76" y1="96" x2="84" y2="96" stroke="#888" stroke-width="2" opacity="0.9"/>
+          <line x1="51" y1="94" x2="46" y2="92" stroke="#888" stroke-width="2" opacity="0.8"/>
+          <line x1="109" y1="94" x2="114" y2="92" stroke="#888" stroke-width="2" opacity="0.8"/>` },
+  { id:'visor', label:'Visor',
+    svg: `<path d="M46 90 Q80 82 114 90 Q110 98 80 96 Q50 98 46 90Z" fill="rgba(0,200,255,0.25)" stroke="rgba(0,200,255,0.7)" stroke-width="2"/>` },
+  { id:'eyepatch', label:'Eyepatch',
+    svg: `<ellipse cx="64" cy="96" rx="13" ry="12" fill="#111" stroke="#333" stroke-width="2"/>
+          <path d="M51 88 Q48 76 44 68" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M77 88 Q75 76 74 68" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M44 68 L74 68" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
+  { id:'scar', label:'Scar',
+    svg: `<line x1="52" y1="106" x2="62" y2="124" stroke="#d44" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+          <line x1="56" y1="106" x2="66" y2="124" stroke="#d44" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>` },
+  { id:'headband', label:'Headband',
+    svg: `<path d="M42 76 Q80 64 118 76" stroke="#cc4422" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.85"/>
+          <path d="M42 76 Q80 64 118 76" stroke="#ff6644" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>` },
+  { id:'cat-ears', label:'Cat Ears',
+    svg: `<path d="M52 62 L44 30 L66 56Z" fill="HC_ACC"/>
+          <path d="M55 60 L50 38 L63 57Z" fill="#ffaaaa" opacity="0.6"/>
+          <path d="M108 62 L116 30 L94 56Z" fill="HC_ACC"/>
+          <path d="M105 60 L110 38 L97 57Z" fill="#ffaaaa" opacity="0.6"/>` },
+  { id:'demon-horns', label:'Demon Horns',
+    svg: `<path d="M56 60 Q48 40 54 20 Q60 34 66 52Z" fill="#880000"/>
+          <path d="M104 60 Q112 40 106 20 Q100 34 94 52Z" fill="#880000"/>
+          <path d="M56 60 Q50 44 54 24 Q56 36 62 52Z" fill="#cc2222" opacity="0.6"/>
+          <path d="M104 60 Q110 44 106 24 Q104 36 98 52Z" fill="#cc2222" opacity="0.6"/>` },
+];
+
+// ══════════════════════════════════════════════════
+//  buildCustomAvatar(state, size)
+// ══════════════════════════════════════════════════
+function buildCustomAvatar(state, size) {
+  size = size || 140;
+  const h = Math.round(size * 1.25);
+  const uid = 'ca' + Math.random().toString(36).substr(2, 7);
+
+  const sc = state.skin || '#f0c895';
+  const hc = state.hairColor || '#1a1a2e';
+  const ec = state.eyeColor || '#00aacc';
+
+  // Find hair style data
+  const hairData = HAIR_STYLES.find(s => s.id === state.hairStyle) || HAIR_STYLES[0];
+  const hairBack  = hairData.back.replace(/HC/g, hc);
+  const hairFront = hairData.front.replace(/HC/g, hc);
+
+  // Find eye style data
+  const eyeData = EYE_STYLES.find(s => s.id === state.eyeStyle) || EYE_STYLES[0];
+  const eyeSvg = eyeData.svg(ec, uid);
+
+  // Find accessory data
+  const accData = ACCESSORIES.find(a => a.id === state.accessory) || ACCESSORIES[0];
+  const accSvg = accData.svg.replace(/HC_ACC/g, hc);
+
+  // Skin-relative colors
+  const skinR = parseInt(sc.slice(1,3),16);
+  const skinG = parseInt(sc.slice(3,5),16);
+  const skinB = parseInt(sc.slice(5,7),16);
+  const earColor = `rgb(${Math.max(0,skinR-14)},${Math.max(0,skinG-16)},${Math.max(0,skinB-16)})`;
+  const neckColor = `rgb(${Math.min(255,skinR+6)},${Math.min(255,skinG+4)},${Math.min(255,skinB+2)})`;
+  const noseColor = `rgb(${Math.max(0,skinR-50)},${Math.max(0,skinG-60)},${Math.max(0,skinB-60)})`;
+
+  // Eyebrow color — darken hair
+  const hcR = parseInt(hc.slice(1,3),16)||30;
+  const hcG = parseInt(hc.slice(3,5),16)||10;
+  const hcB = parseInt(hc.slice(5,7),16)||20;
+  const eyebrowC = `rgb(${Math.max(0,hcR-20)},${Math.max(0,hcG-10)},${Math.max(0,hcB-10)})`;
+
+  return `<svg viewBox="0 0 160 200" width="${size}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="${uid}ec_i" cx="36%" cy="28%" r="65%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>
+      <stop offset="45%" stop-color="${ec}"/>
+      <stop offset="100%" stop-color="${ec}" stop-opacity="0.8"/>
+    </radialGradient>
+    <linearGradient id="${uid}skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${sc}"/>
+      <stop offset="100%" stop-color="${earColor}"/>
+    </linearGradient>
+  </defs>
+
+  <!-- body -->
+  <path d="M14 200 L20 158 Q36 140 62 134 L80 144 L98 134 Q124 140 140 158 L146 200Z" fill="#16183a"/>
+  <path d="M62 134 L80 144 L80 200 L14 200 L20 158 Q36 140 62 134Z" fill="#1e2255"/>
+  <path d="M70 134 L80 144 L90 134 L80 130Z" fill="${earColor}"/>
+  <!-- neck -->
+  <path d="M72 122 L88 122 L88 136 Q80 140 72 136Z" fill="${neckColor}"/>
+
+  <!-- hair back layer -->
+  ${hairBack}
+
+  <!-- head -->
+  <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="url(#${uid}skin)"/>
+
+  <!-- ears -->
+  <path d="M46 96 Q39 96 38 104 Q39 112 46 112 L48 104Z" fill="${earColor}"/>
+  <path d="M114 96 Q121 96 122 104 Q121 112 114 112 L112 104Z" fill="${earColor}"/>
+
+  <!-- eyebrows -->
+  <path d="M51 80 Q62 73 73 77" stroke="${eyebrowC}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path d="M87 77 Q98 73 109 80" stroke="${eyebrowC}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  <path d="M51 80 Q62 73 73 77 Q62 80 51 83Z" fill="${eyebrowC}" opacity="0.9"/>
+  <path d="M87 77 Q98 73 109 80 Q98 82 87 80Z" fill="${eyebrowC}" opacity="0.9"/>
+
+  <!-- eyes -->
+  ${eyeSvg}
+
+  <!-- nose -->
+  <circle cx="77" cy="116" r="1.6" fill="${noseColor}" opacity="0.55"/>
+  <circle cx="83" cy="116" r="1.6" fill="${noseColor}" opacity="0.55"/>
+
+  <!-- mouth -->
+  <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M74 130 Q80 135 86 130" stroke="#d08878" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- hair front layer -->
+  ${hairFront}
+
+  <!-- accessories -->
+  ${accSvg}
+  </svg>`;
+}
+
+// ── Mini head SVG for style thumbnails ───────────────
+function miniHeadSVG(hairData, eyeData, accData, hc, ec, sc, extraAcc) {
+  sc = sc || '#f0c895';
+  hc = hc || '#1a1a2e';
+  ec = ec || '#00aacc';
+  const uid = 'tn' + Math.random().toString(36).substr(2,6);
+  const earColor = '#ddb878';
+
+  let hairBack = '', hairFront = '', eyeSvg = '', accSvg = '';
+  if (hairData) {
+    hairBack  = hairData.back.replace(/HC/g, hc);
+    hairFront = hairData.front.replace(/HC/g, hc);
+  }
+  if (eyeData) {
+    eyeSvg = eyeData.svg(ec, uid);
+  }
+  if (accData) {
+    accSvg = accData.svg.replace(/HC_ACC/g, hc);
+  }
+  return `<svg viewBox="0 0 160 200" width="54" height="68" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="${uid}ec_i" cx="36%" cy="28%" r="65%">
+        <stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>
+        <stop offset="45%" stop-color="${ec}"/>
+        <stop offset="100%" stop-color="${ec}" stop-opacity="0.8"/>
+      </radialGradient>
+    </defs>
+    <rect width="160" height="200" fill="#0a0c1a"/>
+    <path d="M14 200 L20 158 Q36 140 62 134 L80 144 L98 134 Q124 140 140 158 L146 200Z" fill="#16183a"/>
+    ${hairBack}
+    <path d="M80 48 C52 48 46 68 46 90 C46 120 58 144 80 150 C102 144 114 120 114 90 C114 68 108 48 80 48Z" fill="${sc}"/>
+    <path d="M46 96 Q39 96 38 104 Q39 112 46 112 L48 104Z" fill="${earColor}"/>
+    <path d="M114 96 Q121 96 122 104 Q121 112 114 112 L112 104Z" fill="${earColor}"/>
+    <path d="M51 80 Q62 73 73 77" stroke="${hc}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M87 77 Q98 73 109 80" stroke="${hc}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    ${eyeSvg || `
+      <path d="M52 96 Q57 85 64 85 Q71 85 75 96 Q71 108 64 108 Q57 108 52 96Z" fill="white"/>
+      <ellipse cx="64" cy="96" rx="10" ry="11.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="64" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+      <ellipse cx="60" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+      <path d="M85 96 Q89 85 96 85 Q103 85 108 96 Q103 108 96 108 Q89 108 85 96Z" fill="white"/>
+      <ellipse cx="96" cy="96" rx="10" ry="11.5" fill="url(#${uid}ec_i)"/>
+      <ellipse cx="96" cy="97" rx="6" ry="7.5" fill="#07051a"/>
+      <ellipse cx="92" cy="91" rx="4.2" ry="3" fill="white" opacity="0.95"/>
+    `}
+    <circle cx="77" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+    <circle cx="83" cy="116" r="1.6" fill="#c08868" opacity="0.55"/>
+    <path d="M70 128 Q80 135 90 128" stroke="#bf6e58" stroke-width="2" fill="none" stroke-linecap="round"/>
+    ${hairFront}
+    ${accSvg}
+  </svg>`;
+}
+
+// ── Switch category tab ───────────────────────────────
+function switchABCat(cat, btn) {
+  document.querySelectorAll('.ab-cat-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ab-panel').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById('ab-panel-' + cat);
+  if (panel) panel.classList.add('active');
+}
+
+// ── Render all option grids ───────────────────────────
+function renderABGrids() {
+  // --- Skin swatches ---
+  const skinGrid = document.getElementById('ab-skin-grid');
+  skinGrid.innerHTML = SKIN_TONES.map(st => {
+    const sel = avatarState.skin === st.color ? 'selected' : '';
+    return `<div class="ab-swatch ${sel}" style="background:${st.color};" title="${st.label}"
+              onclick="setABOption('skin','${st.color}',this,'ab-skin-grid')"></div>`;
+  }).join('');
+
+  // --- Hair style cards ---
+  const hairGrid = document.getElementById('ab-hair-grid');
+  hairGrid.innerHTML = HAIR_STYLES.map(hs => {
+    const sel = avatarState.hairStyle === hs.id ? 'selected' : '';
+    const thumb = miniHeadSVG(hs, null, null, avatarState.hairColor, avatarState.eyeColor, avatarState.skin, null);
+    return `<div class="ab-style-card ${sel}" onclick="setABOption('hairStyle','${hs.id}',this,'ab-hair-grid')">
+      ${thumb}
+      <div class="ab-style-label">${hs.label}</div>
+    </div>`;
+  }).join('');
+
+  // --- Hair color swatches ---
+  const hairColGrid = document.getElementById('ab-haircol-grid');
+  hairColGrid.innerHTML = HAIR_COLORS.map(hc => {
+    const sel = avatarState.hairColor === hc.color ? 'selected' : '';
+    return `<div class="ab-swatch ${sel}" style="background:${hc.color};" title="${hc.id}"
+              onclick="setABOption('hairColor','${hc.color}',this,'ab-haircol-grid')"></div>`;
+  }).join('');
+
+  // --- Eye style cards ---
+  const eyesGrid = document.getElementById('ab-eyes-grid');
+  eyesGrid.innerHTML = EYE_STYLES.map(es => {
+    const sel = avatarState.eyeStyle === es.id ? 'selected' : '';
+    const thumb = miniHeadSVG(null, es, null, avatarState.hairColor, avatarState.eyeColor, avatarState.skin, null);
+    return `<div class="ab-style-card ${sel}" onclick="setABOption('eyeStyle','${es.id}',this,'ab-eyes-grid')">
+      ${thumb}
+      <div class="ab-style-label">${es.label}</div>
+    </div>`;
+  }).join('');
+
+  // --- Eye color swatches ---
+  const eyeColGrid = document.getElementById('ab-eyecol-grid');
+  eyeColGrid.innerHTML = EYE_COLORS.map(ec => {
+    const sel = avatarState.eyeColor === ec.color ? 'selected' : '';
+    return `<div class="ab-swatch ${sel}" style="background:${ec.color};" title="${ec.id}"
+              onclick="setABOption('eyeColor','${ec.color}',this,'ab-eyecol-grid')"></div>`;
+  }).join('');
+
+  // --- Accessory cards ---
+  const extrasGrid = document.getElementById('ab-extras-grid');
+  extrasGrid.innerHTML = ACCESSORIES.map(ac => {
+    const sel = avatarState.accessory === ac.id ? 'selected' : '';
+    const thumb = miniHeadSVG(null, null, ac, avatarState.hairColor, avatarState.eyeColor, avatarState.skin, null);
+    return `<div class="ab-style-card ${sel}" onclick="setABOption('accessory','${ac.id}',this,'ab-extras-grid')">
+      ${thumb}
+      <div class="ab-style-label">${ac.label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Set a builder option ─────────────────────────────
+function setABOption(key, value, el, gridId) {
+  avatarState[key] = value;
+  // Update selected state in grid
+  const grid = document.getElementById(gridId);
+  if (grid) {
+    grid.querySelectorAll('.ab-swatch, .ab-style-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  // Re-render hair/eye thumbnails if hair color or skin changed (affects thumbnails)
+  if (key === 'hairColor' || key === 'skin' || key === 'eyeColor') {
+    const hairGrid = document.getElementById('ab-hair-grid');
+    if (hairGrid) {
+      hairGrid.querySelectorAll('.ab-style-card').forEach((card, i) => {
+        const hs = HAIR_STYLES[i];
+        const thumb = miniHeadSVG(hs, null, null, avatarState.hairColor, avatarState.eyeColor, avatarState.skin, null);
+        const svgContainer = card.querySelector('svg');
+        if (svgContainer) {
+          card.innerHTML = thumb + `<div class="ab-style-label">${hs.label}</div>`;
+          if (avatarState.hairStyle === hs.id) card.classList.add('selected');
+          card.onclick = () => setABOption('hairStyle', hs.id, card, 'ab-hair-grid');
+        }
+      });
+    }
+    const eyeGrid = document.getElementById('ab-eyes-grid');
+    if (eyeGrid) {
+      eyeGrid.querySelectorAll('.ab-style-card').forEach((card, i) => {
+        const es = EYE_STYLES[i];
+        const thumb = miniHeadSVG(null, es, null, avatarState.hairColor, avatarState.eyeColor, avatarState.skin, null);
+        card.innerHTML = thumb + `<div class="ab-style-label">${es.label}</div>`;
+        if (avatarState.eyeStyle === es.id) card.classList.add('selected');
+        card.onclick = () => setABOption('eyeStyle', es.id, card, 'ab-eyes-grid');
+      });
+    }
+  }
+  refreshABPreview();
+}
+
+// ── Update live preview ───────────────────────────────
+function refreshABPreview() {
+  const el = document.getElementById('ab-preview');
+  if (el) el.innerHTML = buildCustomAvatar(avatarState, 140);
+}
+
+// ── Save avatar to profile ─────────────────────────────
+function saveAvatar() {
+  const svg = buildCustomAvatar(avatarState, 140);
+  const hero = document.querySelector('#screen-profile .profile-hero');
+  if (hero) hero.innerHTML = svg;
+  showScreen('profile');
+}
+
+// ── Init builder ──────────────────────────────────────
+function initAvatarBuilder() {
+  renderABGrids();
+  refreshABPreview();
+}
+
+// ── INIT ───────────────────────────────────────────
+renderCards();
+renderMatches();
+initAvatarBuilder();
+</script>
+</body>
+</html>
