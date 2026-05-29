@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Animii — find your crew. watch together.</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -1038,6 +1040,26 @@
     20% { opacity: .6; }
     80% { opacity: .3; }
     100% { opacity: 0; transform: translateY(-80px) translateX(var(--drift)); }
+  }
+
+  /* ── Mobile: fill the real screen ── */
+  @media (max-width: 500px) {
+    body {
+      align-items: stretch;
+      justify-content: stretch;
+      overflow: hidden;
+    }
+    .phone {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .notch { display: none; }
+    .status-bar { display: none; }
   }
 </style>
 </head>
