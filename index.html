@@ -1744,15 +1744,10 @@ function swipeCard(direction) {
 
   front.classList.add(direction === 'left' ? 'swipe-left' : direction === 'right' ? 'swipe-right' : 'swipe-up');
 
-  // Always call play() inside the gesture when it's a like.
-  // If the real URL is ready, play it now. If not, play silence to keep
-  // anthemEl activated so it can play from async context in showMatchUI.
-  // load() is required on iOS after changing src — without it Safari may ignore the new source.
+  // Call play() inside the gesture on every like. Real URL if ready, SILENT otherwise.
+  // No explicit load() — iOS handles the src-change implicitly and more reliably mid-gesture.
   if (isLike) {
-    anthemEl.pause();
-    anthemEl.currentTime = 0;
     anthemEl.src = (isMatch && profile?.anthem?.previewUrl) ? profile.anthem.previewUrl : SILENT;
-    anthemEl.load();
     anthemEl.play().catch(() => {});
   }
 
@@ -1839,7 +1834,11 @@ function startAnthemUI() {
 
 function stopAnthem() {
   anthemEl.pause();
-  anthemEl.currentTime = 0;
+  // Reset to SILENT so the element is always in the same clean state (HAVE_NOTHING)
+  // going into the next match. Without this, a fully-buffered element (HAVE_ENOUGH_DATA)
+  // behaves differently than an empty one when we call play() in the next gesture.
+  anthemEl.src = SILENT;
+  anthemEl.load();
   if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; }
   const bars = document.getElementById('anthem-bars');
   if (bars) bars.classList.add('paused');
