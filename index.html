@@ -1687,6 +1687,42 @@ function setupDrag(card, idx) {
   window.addEventListener('touchend', e => { if(isDragging) onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); });
 }
 
+// ── MATCH MODAL + ANTHEM ────────────────────────────
+let anthemAudio = null;
+let anthemTimer = null;
+const ANTHEM_DURATION = 10;
+
+// One persistent audio element — unlocked once on first touch, reused forever.
+// iOS keeps a media element "user-activated" across src changes; new Audio() loses that.
+const anthemEl = new Audio();
+anthemEl.volume = 0.7;
+
+function unlockAnthemEl() {
+  anthemEl.play().catch(() => {});
+  setTimeout(() => { anthemEl.pause(); anthemEl.currentTime = 0; }, 50);
+}
+document.addEventListener('touchstart', unlockAnthemEl, { once: true });
+document.addEventListener('mousedown',  unlockAnthemEl, { once: true });
+
+// Lazy-fetch: load the next few profiles' preview URLs so they're ready by swipe time
+async function fetchAnthemFor(profile) {
+  if (!profile?.anthem || profile.anthem.previewUrl) return;
+  try {
+    const q = encodeURIComponent(profile.anthem.search || `${profile.anthem.title} ${profile.anthem.artist}`);
+    const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5`);
+    const data = await res.json();
+    const track = data.results.find(r => r.previewUrl);
+    if (track) profile.anthem.previewUrl = track.previewUrl;
+  } catch(e) {}
+}
+
+function prefetchUpcoming() {
+  for (let i = 0; i < 6; i++) {
+    fetchAnthemFor(profiles[(currentIdx + i) % profiles.length]);
+  }
+}
+prefetchUpcoming(); // kick off on load
+
 // ── SWIPE ACTION ───────────────────────────────────
 function swipeCard(direction) {
   const front = document.querySelector('.profile-card.front');
@@ -1694,23 +1730,23 @@ function swipeCard(direction) {
 
   const profile = profiles[currentIdx % profiles.length];
   const isLike = direction === 'right' || direction === 'up';
-
-  // Decide match result NOW — while still inside the user gesture
   const isMatch = isLike && Math.random() > 0.35;
 
   front.classList.add(direction === 'left' ? 'swipe-left' : direction === 'right' ? 'swipe-right' : 'swipe-up');
 
-  // ✅ iOS requires audio.play() to be called synchronously in the gesture handler.
-  // Starting it here — before the setTimeout — satisfies that requirement.
+  // Play audio NOW — synchronous inside the gesture (iOS requirement).
+  // Reuse anthemEl so iOS doesn't revoke activation between matches.
   if (isMatch && profile?.anthem?.previewUrl) {
-    stopAnthem();
-    anthemAudio = new Audio(profile.anthem.previewUrl);
-    anthemAudio.volume = 0.7;
-    anthemAudio.play().catch(() => {});
+    anthemEl.pause();
+    anthemEl.currentTime = 0;
+    anthemEl.src = profile.anthem.previewUrl;
+    anthemEl.play().catch(() => {});
+    anthemAudio = anthemEl;
   }
 
   setTimeout(() => {
     currentIdx++;
+    prefetchUpcoming(); // keep the next batch ready
     renderCards();
     if (isMatch && profile) {
       showMatchUI(profile);
@@ -1720,28 +1756,7 @@ function swipeCard(direction) {
   }, 340);
 }
 
-// ── MATCH MODAL + ANTHEM ────────────────────────────
-let anthemAudio = null;
-let anthemTimer = null;
-const ANTHEM_DURATION = 10;
-
-// Pre-fetch iTunes preview URLs for all profiles on load
-async function prefetchAnthems() {
-  const fetches = profiles.map(async (p) => {
-    if (!p.anthem) return;
-    try {
-      const q = encodeURIComponent(p.anthem.search || `${p.anthem.title} ${p.anthem.artist}`);
-      const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5`);
-      const data = await res.json();
-      const track = data.results.find(r => r.previewUrl);
-      if (track) p.anthem.previewUrl = track.previewUrl;
-    } catch(e) {}
-  });
-  await Promise.all(fetches);
-}
-prefetchAnthems();
-
-// Show modal UI — audio is already playing from swipeCard gesture
+// Show modal — audio already playing from gesture above
 function showMatchUI(profile) {
   const modal = document.getElementById('match-modal');
   document.getElementById('modal-sub').innerHTML = `You and <strong>${profile.name}</strong> both liked each other`;
@@ -1752,7 +1767,6 @@ function showMatchUI(profile) {
     document.getElementById('anthem-artist').textContent = profile.anthem.artist;
     document.getElementById('anthem-player').style.display = 'flex';
     document.getElementById('anthem-progress-wrap').style.display = 'block';
-    // Audio is already playing — just run the progress bar & timer
     if (anthemAudio) {
       startAnthemUI();
     } else {
@@ -1764,7 +1778,7 @@ function showMatchUI(profile) {
   }
 }
 
-// Visual-only: progress bar + countdown (audio already started)
+// Progress bar + countdown (audio already running)
 function startAnthemUI() {
   const bar = document.getElementById('anthem-progress-bar');
   const timerEl = document.getElementById('anthem-timer');
@@ -1788,10 +1802,9 @@ function startAnthemUI() {
 }
 
 function stopAnthem() {
-  if (anthemAudio) {
-    anthemAudio.pause();
-    anthemAudio = null;
-  }
+  anthemEl.pause();
+  anthemEl.currentTime = 0;
+  anthemAudio = null;
   if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; }
   const bars = document.getElementById('anthem-bars');
   if (bars) bars.classList.add('paused');
