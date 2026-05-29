@@ -1783,23 +1783,14 @@ function startAnthemUI() {
     elapsed++;
     const remaining = ANTHEM_DURATION - elapsed;
     timerEl.textContent = `0:${String(remaining).padStart(2,'0')}`;
-    if (elapsed >= ANTHEM_DURATION) stopAnthem();
+    if (elapsed >= ANTHEM_DURATION) closeModal();
   }, 1000);
 }
 
 function stopAnthem() {
   if (anthemAudio) {
-    // Fade out over 800ms
-    const fadeInterval = setInterval(() => {
-      if (!anthemAudio) { clearInterval(fadeInterval); return; }
-      if (anthemAudio.volume > 0.05) {
-        anthemAudio.volume = Math.max(0, anthemAudio.volume - 0.1);
-      } else {
-        anthemAudio.pause();
-        anthemAudio = null;
-        clearInterval(fadeInterval);
-      }
-    }, 80);
+    anthemAudio.pause();
+    anthemAudio = null;
   }
   if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; }
   const bars = document.getElementById('anthem-bars');
@@ -1809,7 +1800,6 @@ function stopAnthem() {
 function closeModal() {
   stopAnthem();
   document.getElementById('match-modal').classList.remove('show');
-  // Reset timer display
   document.getElementById('anthem-timer').textContent = `0:${String(ANTHEM_DURATION).padStart(2,'0')}`;
   const bar = document.getElementById('anthem-progress-bar');
   bar.style.transition = 'none';
