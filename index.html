@@ -1689,6 +1689,7 @@ function setupDrag(card, idx) {
 
 // ── MATCH MODAL + ANTHEM ────────────────────────────
 let anthemTimer = null;
+let matchToken = 0; // incremented each match; stale async callbacks abort when token changes
 const ANTHEM_DURATION = 10;
 
 // Smallest valid silent WAV (44 bytes). Used so anthemEl.play() always succeeds
@@ -1746,10 +1747,12 @@ function swipeCard(direction) {
   // Always call play() inside the gesture when it's a like.
   // If the real URL is ready, play it now. If not, play silence to keep
   // anthemEl activated so it can play from async context in showMatchUI.
+  // load() is required on iOS after changing src — without it Safari may ignore the new source.
   if (isLike) {
     anthemEl.pause();
     anthemEl.currentTime = 0;
     anthemEl.src = (isMatch && profile?.anthem?.previewUrl) ? profile.anthem.previewUrl : SILENT;
+    anthemEl.load();
     anthemEl.play().catch(() => {});
   }
 
@@ -1770,6 +1773,8 @@ function swipeCard(direction) {
 // Show the match modal. audioReady = true means real audio is already playing.
 // If not ready, we fetch the URL here and play — works because anthemEl is activated.
 async function showMatchUI(profile, audioReady) {
+  const myToken = ++matchToken; // grab token; if it changes mid-async, we've been superseded
+
   const modal = document.getElementById('match-modal');
   document.getElementById('modal-sub').innerHTML = `You and <strong>${profile.name}</strong> both liked each other`;
   modal.classList.add('show');
@@ -1789,14 +1794,17 @@ async function showMatchUI(profile, audioReady) {
     // URL wasn't ready at swipe time — fetch it now and play.
     // anthemEl is activated from the gesture, so play() works here even though it's async.
     await fetchAnthemFor(profile);
+    if (myToken !== matchToken) return; // user already moved to next match, abort
     if (profile.anthem.previewUrl) {
       anthemEl.pause();
       anthemEl.currentTime = 0;
       anthemEl.src = profile.anthem.previewUrl;
+      anthemEl.load();
       anthemEl.play().catch(() => {});
     }
   }
 
+  if (myToken !== matchToken) return; // check again before touching UI/timer
   if (profile.anthem.previewUrl) {
     startAnthemUI();
   } else {
@@ -1806,6 +1814,8 @@ async function showMatchUI(profile, audioReady) {
 
 // Progress bar + countdown (audio already running)
 function startAnthemUI() {
+  if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; } // always kill old timer first
+
   const bar = document.getElementById('anthem-progress-bar');
   const timerEl = document.getElementById('anthem-timer');
   const bars = document.getElementById('anthem-bars');
