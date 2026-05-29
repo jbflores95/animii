@@ -1374,46 +1374,57 @@
 <script>
 // ── DATA ──────────────────────────────────────────────
 const profiles = [
-  {
-    name: "Hana Mori", age: 22,
-    watching: "Frieren: Beyond Journey's End",
-    live: true, ep: "EP.12",
-    tags: ["Seinen", "Fantasy", "Healing anime only"],
-    hotTake: "Re:Zero is a masterpiece",
-    avatarType: "flame",
-    colors: { hair: "#cc3333", iris: "#aa4400" },
-    anthem: { title: "Yuki no Hana", artist: "Mika Nakashima", search: "Yuki no Hana Mika Nakashima" }
-  },
-  {
-    name: "Ren Takahashi", age: 24,
-    watching: "Dungeon Meshi",
-    live: false, ep: "EP.07",
-    tags: ["Shonen", "Isekai", "Dub defender"],
-    hotTake: "Naruto > Bleach",
-    avatarType: "silver",
-    colors: { hair: "#9999cc", iris: "#6633aa" },
-    anthem: { title: "Blue Bird", artist: "Ikimono-gakari", search: "Blue Bird Ikimono-gakari Naruto" }
-  },
-  {
-    name: "Sora Iida", age: 21,
-    watching: "HxH rewatch",
-    live: true, ep: "EP.02",
-    tags: ["HxH stan", "No filler", "Sub only"],
-    hotTake: "Gon is overrated",
-    avatarType: "dark",
-    colors: { hair: "#222244", iris: "#6600cc" },
-    anthem: { title: "Departure!", artist: "Masatoshi Ono", search: "Departure Masatoshi Ono Hunter x Hunter" }
-  },
-  {
-    name: "Yuki Abe", age: 23,
-    watching: "Blue Lock",
-    live: false, ep: "EP.09",
-    tags: ["Sports", "Shonen", "Manga reader"],
-    hotTake: "Sports anime > battle anime",
-    avatarType: "warm",
-    colors: { hair: "#663300", iris: "#336600" },
-    anthem: { title: "Seishun Kyousoukyoku", artist: "Sambomaster", search: "Seishun Kyousoukyoku Sambomaster" }
-  },
+  { name:"Hana Mori", age:22, watching:"Frieren: Beyond Journey's End", live:true, ep:"EP.12", tags:["Seinen","Fantasy","Healing anime only"], hotTake:"Re:Zero is a masterpiece", avatarType:"flame", colors:{hair:"#cc3333",iris:"#aa4400"}, anthem:{title:"Yuki no Hana",artist:"Mika Nakashima",search:"Yuki no Hana Mika Nakashima"} },
+  { name:"Ren Takahashi", age:24, watching:"Dungeon Meshi", live:false, ep:"EP.07", tags:["Shonen","Isekai","Dub defender"], hotTake:"Naruto > Bleach", avatarType:"silver", colors:{hair:"#9999cc",iris:"#6633aa"}, anthem:{title:"Blue Bird",artist:"Ikimono-gakari",search:"Blue Bird Ikimono-gakari"} },
+  { name:"Sora Iida", age:21, watching:"HxH rewatch", live:true, ep:"EP.02", tags:["HxH stan","No filler","Sub only"], hotTake:"Gon is overrated", avatarType:"dark", colors:{hair:"#222244",iris:"#6600cc"}, anthem:{title:"Departure!",artist:"Masatoshi Ono",search:"Departure Masatoshi Ono Hunter"} },
+  { name:"Yuki Abe", age:23, watching:"Blue Lock", live:false, ep:"EP.09", tags:["Sports","Shonen","Manga reader"], hotTake:"Sports anime > battle anime", avatarType:"warm", colors:{hair:"#663300",iris:"#336600"}, anthem:{title:"Seishun Kyousoukyoku",artist:"Sambomaster",search:"Seishun Kyousoukyoku Sambomaster"} },
+  { name:"Mei Fujiwara", age:20, watching:"Demon Slayer", live:true, ep:"EP.05", tags:["Kimetsu","Animation freak","Ufotable worship"], hotTake:"Zenitsu is actually the best character", avatarType:"flame", colors:{hair:"#ff6600",iris:"#ff0000"}, anthem:{title:"Gurenge",artist:"LiSA",search:"Gurenge LiSA Demon Slayer"} },
+  { name:"Kai Nishida", age:25, watching:"Attack on Titan", live:false, ep:"EP.01", tags:["AoT","Manga spoilers OK","Tragedy lover"], hotTake:"Eren did nothing wrong", avatarType:"dark", colors:{hair:"#333333",iris:"#880000"}, anthem:{title:"Guren no Yumiya",artist:"Linked Horizon",search:"Guren no Yumiya Linked Horizon"} },
+  { name:"Aoi Kato", age:19, watching:"My Hero Academia", live:true, ep:"EP.14", tags:["MHA","Bakugo nation","Sub only"], hotTake:"Class 1-B is more interesting than 1-A", avatarType:"silver", colors:{hair:"#00aa88",iris:"#00ddcc"}, anthem:{title:"The Day",artist:"Porno Graffitti",search:"The Day Porno Graffitti My Hero Academia"} },
+  { name:"Ryu Matsuda", age:26, watching:"Vinland Saga", live:false, ep:"EP.10", tags:["Seinen","History","No capes needed"], hotTake:"Vinland Saga > AoT and it's not close", avatarType:"warm", colors:{hair:"#ffcc00",iris:"#0066aa"}, anthem:{title:"Mukanjyo",artist:"Survive Said The Prophet",search:"Mukanjyo Survive Said Prophet"} },
+  { name:"Nami Oshiro", age:22, watching:"One Piece", live:true, ep:"EP.1090", tags:["One Piece","Nakama energy","All arcs valid"], hotTake:"Wano is top 3 arcs in anime history", avatarType:"flame", colors:{hair:"#ff9900",iris:"#ff5500"}, anthem:{title:"We Are!",artist:"Hiroshi Kitadani",search:"We Are Hiroshi Kitadani One Piece"} },
+  { name:"Shin Ueda", age:28, watching:"Cowboy Bebop rewatch", live:false, ep:"EP.06", tags:["Classics only","Jazz fan","Bebop defender"], hotTake:"Spike never died and I'll die on this hill", avatarType:"dark", colors:{hair:"#556600",iris:"#336600"}, anthem:{title:"Tank!",artist:"Seatbelts",search:"Tank Seatbelts Cowboy Bebop"} },
+  { name:"Erika Suzuki", age:21, watching:"Fullmetal Alchemist Brotherhood", live:true, ep:"EP.25", tags:["FMA:B","Perfect anime","Story > action"], hotTake:"FMA:B is the greatest anime ever made, period", avatarType:"flame", colors:{hair:"#cc8800",iris:"#ff6600"}, anthem:{title:"Again",artist:"YUI",search:"Again YUI Fullmetal Alchemist"} },
+  { name:"Taro Kondo", age:24, watching:"Jujutsu Kaisen", live:false, ep:"EP.08", tags:["JJK","Gojo supremacy","MAPPA enjoyer"], hotTake:"JJK Season 2 is the best season of anime ever made", avatarType:"silver", colors:{hair:"#ffffff",iris:"#0055ff"}, anthem:{title:"Kaikai Kitan",artist:"Eve",search:"Kaikai Kitan Eve Jujutsu Kaisen"} },
+  { name:"Sakura Iwamoto", age:20, watching:"Spy x Family", live:true, ep:"EP.03", tags:["Wholesome only","Anya best girl","Comedy fan"], hotTake:"Anya Forger is top 5 anime characters of all time", avatarType:"warm", colors:{hair:"#ffaacc",iris:"#ff44aa"}, anthem:{title:"Mixed Nuts",artist:"Official HIGE DANdism",search:"Mixed Nuts HIGE DANdism Spy Family"} },
+  { name:"Daisuke Hayashi", age:27, watching:"Steins;Gate", live:false, ep:"EP.01", tags:["Sci-fi","Time loops","Intellectual anime"], hotTake:"Mayuri > Kurisu and I will not explain", avatarType:"dark", colors:{hair:"#444444",iris:"#5555ff"}, anthem:{title:"Hacking to the Gate",artist:"Kanako Ito",search:"Hacking to the Gate Kanako Ito Steins Gate"} },
+  { name:"Yua Tanaka", age:22, watching:"Chainsaw Man", live:true, ep:"EP.12", tags:["CSM","Fujimoto genius","Horror fan"], hotTake:"Power is the best character in manga history", avatarType:"flame", colors:{hair:"#dd0000",iris:"#ff0000"}, anthem:{title:"KICK BACK",artist:"Kenshi Yonezu",search:"KICK BACK Kenshi Yonezu Chainsaw Man"} },
+  { name:"Kenji Mori", age:23, watching:"Tokyo Revengers", live:false, ep:"EP.15", tags:["Delinquent arc","Time travel","Draken nation"], hotTake:"Mikey is the most tragic character in all of anime", avatarType:"silver", colors:{hair:"#333399",iris:"#6666ff"}, anthem:{title:"Cry Baby",artist:"Official HIGE DANdism",search:"Cry Baby HIGE DANdism Tokyo Revengers"} },
+  { name:"Miku Sasaki", age:19, watching:"Violet Evergarden", live:true, ep:"EP.07", tags:["Made me cry","Emotional wreck","KyoAni fan"], hotTake:"Violet Evergarden is the most beautiful anime ever made", avatarType:"warm", colors:{hair:"#aaddff",iris:"#66aaff"}, anthem:{title:"Sincerely",artist:"TRUE",search:"Sincerely TRUE Violet Evergarden"} },
+  { name:"Hiroki Tanaka", age:25, watching:"Bleach TYBW", live:false, ep:"EP.16", tags:["Bleach OG","Ichigo nation","TYBW hype"], hotTake:"Bleach has the best fights in the history of anime", avatarType:"dark", colors:{hair:"#ff6600",iris:"#cc8800"}, anthem:{title:"Asterisk",artist:"Orange Range",search:"Asterisk Orange Range Bleach"} },
+  { name:"Ayaka Ito", age:21, watching:"Kaguya-sama Love is War", live:true, ep:"EP.09", tags:["Romcom","Brain battles","Ishigami best boy"], hotTake:"Kaguya-sama is the best romcom ever written", avatarType:"flame", colors:{hair:"#cc0000",iris:"#ff4444"}, anthem:{title:"Love is War",artist:"Haruna Luna",search:"Love is War Haruna Luna Kaguya"} },
+  { name:"Makoto Sato", age:26, watching:"Neon Genesis Evangelion", live:false, ep:"EP.01", tags:["NGE veteran","Psychological","Anno enjoyer"], hotTake:"End of Evangelion is not depressing, it's freeing", avatarType:"silver", colors:{hair:"#cc6600",iris:"#aa4400"}, anthem:{title:"A Cruel Angel's Thesis",artist:"Yoko Takahashi",search:"Cruel Angels Thesis Yoko Takahashi Evangelion"} },
+  { name:"Rina Yamamoto", age:20, watching:"Sword Art Online", live:true, ep:"EP.02", tags:["SAO defender","Kirito fan","Isekai lover"], hotTake:"The Aincrad arc is a genuine masterpiece", avatarType:"warm", colors:{hair:"#000000",iris:"#0088ff"}, anthem:{title:"Crossing Field",artist:"LiSA",search:"Crossing Field LiSA Sword Art Online"} },
+  { name:"Takeshi Ando", age:27, watching:"Mob Psycho 100", live:false, ep:"EP.05", tags:["Mob Psycho","Anti-power fantasy","Bones fan"], hotTake:"Mob Psycho 100 > One Punch Man and it's not even close", avatarType:"dark", colors:{hair:"#111111",iris:"#aa00aa"}, anthem:{title:"99",artist:"MOB CHOIR",search:"99 MOB CHOIR Mob Psycho"} },
+  { name:"Hina Nakamura", age:22, watching:"Your Lie in April", live:true, ep:"EP.08", tags:["Music anime","Crying is fine","Kaori fan"], hotTake:"Your Lie in April will break every single person", avatarType:"flame", colors:{hair:"#ff6688",iris:"#ff3388"}, anthem:{title:"Hikaru Nara",artist:"Goose House",search:"Hikaru Nara Goose House Your Lie April"} },
+  { name:"Shu Kimura", age:24, watching:"Code Geass", live:false, ep:"EP.12", tags:["Code Geass","Lelouch IQ","Strategic anime"], hotTake:"Lelouch is the greatest anime protagonist of all time", avatarType:"silver", colors:{hair:"#111133",iris:"#9900cc"}, anthem:{title:"COLORS",artist:"FLOW",search:"COLORS FLOW Code Geass"} },
+  { name:"Amane Fujita", age:21, watching:"Re:Zero", live:true, ep:"EP.18", tags:["Re:Zero","Emilia best girl","Suffering enjoyer"], hotTake:"Re:Zero has the best world building in isekai", avatarType:"warm", colors:{hair:"#aa88ff",iris:"#8855cc"}, anthem:{title:"Redo",artist:"Konomi Suzuki",search:"Redo Konomi Suzuki Re Zero"} },
+  { name:"Nao Watanabe", age:23, watching:"Haikyuu!!", live:false, ep:"EP.22", tags:["Haikyuu","Hinata nation","Sports anime goat"], hotTake:"Haikyuu does not have a single bad episode", avatarType:"flame", colors:{hair:"#ff7700",iris:"#ff4400"}, anthem:{title:"Imagination",artist:"SPYAIR",search:"Imagination SPYAIR Haikyuu"} },
+  { name:"Ryota Ishii", age:28, watching:"Berserk", live:true, ep:"EP.01", tags:["Berserk vet","Manga only","Guts nation"], hotTake:"Berserk is the greatest manga and nothing else comes close", avatarType:"dark", colors:{hair:"#222222",iris:"#cc3300"}, anthem:{title:"Tell Me Why",artist:"Penpals",search:"Tell Me Why Penpals Berserk"} },
+  { name:"Miyu Okazaki", age:20, watching:"Ouran High School Host Club", live:false, ep:"EP.13", tags:["Classic romance","Tamaki best boy","Slice of life"], hotTake:"Ouran is the perfect anime and I will not take questions", avatarType:"warm", colors:{hair:"#ffdd00",iris:"#ffaa00"}, anthem:{title:"Sakura Kiss",artist:"Chieko Kawabe",search:"Sakura Kiss Chieko Kawabe Ouran"} },
+  { name:"Kana Yoshida", age:22, watching:"Oshi no Ko", live:false, ep:"EP.07", tags:["Idol anime","Ruby best girl","Drama lover"], hotTake:"Oshi no Ko ep 1 is the greatest single episode in anime history", avatarType:"flame", colors:{hair:"#222222",iris:"#ff00ff"}, anthem:{title:"IDOL",artist:"YOASOBI",search:"IDOL YOASOBI Oshi no Ko"} },
+  { name:"Jun Matsumoto", age:26, watching:"Parasyte", live:true, ep:"EP.15", tags:["Horror","Sci-fi","Deep themes"], hotTake:"Parasyte is one of the most criminally underrated anime", avatarType:"dark", colors:{hair:"#336633",iris:"#00aa44"}, anthem:{title:"Let Me Hear",artist:"Fear and Loathing in Las Vegas",search:"Let Me Hear Fear Loathing Vegas Parasyte"} },
+  { name:"Haruto Mori", age:24, watching:"Black Clover", live:true, ep:"EP.80", tags:["Black Clover","Asta fan","Long-runner gang"], hotTake:"Black Clover genuinely got better as it went on", avatarType:"silver", colors:{hair:"#111111",iris:"#ffcc00"}, anthem:{title:"Black Rover",artist:"Vickeblanka",search:"Black Rover Vickeblanka Black Clover"} },
+  { name:"Rena Kobayashi", age:22, watching:"Tengen Toppa Gurren Lagann", live:false, ep:"EP.14", tags:["TTGL","Believe in tomorrow","Mecha lover"], hotTake:"Kamina is the greatest character ever written in fiction", avatarType:"flame", colors:{hair:"#ff3300",iris:"#ff8800"}, anthem:{title:"Sorairo Days",artist:"Shoko Nakagawa",search:"Sorairo Days Shoko Nakagawa Gurren Lagann"} },
+  { name:"Tomoya Kawano", age:27, watching:"Mushishi", live:true, ep:"EP.03", tags:["Atmospheric","Slow burn","Nature anime"], hotTake:"Mushishi is the most calming anime ever created", avatarType:"dark", colors:{hair:"#aaaaaa",iris:"#cccccc"}, anthem:{title:"Shiver",artist:"Lucy Rose",search:"Shiver Lucy Rose Mushishi"} },
+  { name:"Ai Shimizu", age:20, watching:"Toradora!", live:false, ep:"EP.16", tags:["Romcom queen","Taiga best girl","Tsundere fan"], hotTake:"Toradora has the best Christmas episode in all of anime", avatarType:"warm", colors:{hair:"#884400",iris:"#cc6600"}, anthem:{title:"Pre-Parade",artist:"Rie Kugimiya",search:"Pre-Parade Rie Kugimiya Toradora"} },
+  { name:"Chiaki Ueda", age:21, watching:"No Game No Life", live:false, ep:"EP.07", tags:["NGNL","Sora best","Strategy fan"], hotTake:"No Game No Life deserves a season 2 more than any anime", avatarType:"flame", colors:{hair:"#cc0066",iris:"#ff0099"}, anthem:{title:"This Game",artist:"Konomi Suzuki",search:"This Game Konomi Suzuki No Game No Life"} },
+  { name:"Keita Nakajima", age:23, watching:"Dr. Stone", live:true, ep:"EP.12", tags:["Science fan","Senku is real","Shonen with brain"], hotTake:"Dr. Stone literally made me enjoy learning science", avatarType:"dark", colors:{hair:"#228800",iris:"#44bb00"}, anthem:{title:"Good Morning World!",artist:"Burnout Syndromes",search:"Good Morning World Burnout Syndromes Dr Stone"} },
+  { name:"Yuki Mori", age:22, watching:"Soul Eater", live:false, ep:"EP.20", tags:["Soul Eater","Maka best","Bones era"], hotTake:"The Soul Eater manga ending is actually perfect", avatarType:"warm", colors:{hair:"#ffffff",iris:"#ff4444"}, anthem:{title:"Resonance",artist:"T.M.Revolution",search:"Resonance TM Revolution Soul Eater"} },
+  { name:"Daiki Fujimoto", age:26, watching:"Classroom of the Elite", live:true, ep:"EP.06", tags:["Psychological","Ayanokoji fan","Chess player"], hotTake:"Classroom of the Elite is a psychology masterclass", avatarType:"silver", colors:{hair:"#222222",iris:"#888888"}, anthem:{title:"Caste Room",artist:"ZAQ",search:"Caste Room ZAQ Classroom Elite"} },
+  { name:"Mio Nakamura", age:20, watching:"Puella Magi Madoka Magica", live:false, ep:"EP.08", tags:["Deconstruction","Homura fan","Dark magical girl"], hotTake:"Homura Akemi did absolutely nothing wrong ever", avatarType:"flame", colors:{hair:"#bb00bb",iris:"#ff00ff"}, anthem:{title:"Connect",artist:"ClariS",search:"Connect ClariS Madoka Magica"} },
+  { name:"Shota Kida", age:28, watching:"JoJo's Bizarre Adventure", live:true, ep:"EP.01", tags:["JoJo veteran","Part 4 best","Araki genius"], hotTake:"Steel Ball Run is the greatest manga ever written", avatarType:"dark", colors:{hair:"#cc9900",iris:"#ffcc00"}, anthem:{title:"Sono Chi no Sadame",artist:"Hiroaki Tommy Tominaga",search:"Sono Chi no Sadame JoJo"} },
+  { name:"Ryusei Oda", age:25, watching:"Naruto Shippuden", live:true, ep:"EP.167", tags:["Pain arc","Nagato fan","Naruto nostalgic"], hotTake:"Pain's arc is the greatest story arc in all of Shonen", avatarType:"silver", colors:{hair:"#ffaa00",iris:"#ff8800"}, anthem:{title:"Sign",artist:"FLOW",search:"Sign FLOW Naruto Shippuden"} },
+  { name:"Emiko Kato", age:22, watching:"Clannad After Story", live:false, ep:"EP.14", tags:["After Story","Kyoto Animation","Cry every ep"], hotTake:"Clannad After Story is the greatest love story ever animated", avatarType:"flame", colors:{hair:"#886600",iris:"#aa8800"}, anthem:{title:"Dango Daikazoku",artist:"Chata",search:"Dango Daikazoku Chata Clannad"} },
+  { name:"Takuya Sano", age:24, watching:"Fate/Zero", live:true, ep:"EP.10", tags:["Fate fan","Ufotable art","Dark fantasy"], hotTake:"Kiritsugu Emiya is the most complex character in anime", avatarType:"dark", colors:{hair:"#222222",iris:"#cc0000"}, anthem:{title:"oath sign",artist:"LiSA",search:"oath sign LiSA Fate Zero"} },
+  { name:"Riko Hayashi", age:21, watching:"Made in Abyss", live:false, ep:"EP.09", tags:["Abyss fan","Dark adventure","Worldbuilding nerd"], hotTake:"Made in Abyss has the best worldbuilding of any anime", avatarType:"warm", colors:{hair:"#886600",iris:"#884400"}, anthem:{title:"Deep in Abyss",artist:"Miyu Tomita",search:"Deep in Abyss Miyu Tomita Made in Abyss"} },
+  { name:"Akira Yoshida", age:26, watching:"Samurai Champloo", live:true, ep:"EP.08", tags:["Champloo forever","Hip-hop anime","Classics only"], hotTake:"Samurai Champloo has the greatest soundtrack in all of anime", avatarType:"silver", colors:{hair:"#663300",iris:"#cc6600"}, anthem:{title:"Battlecry",artist:"Nujabes",search:"Battlecry Nujabes Samurai Champloo"} },
+  { name:"Shiori Yamada", age:23, watching:"Gintama", live:false, ep:"EP.200", tags:["Gintama","Gin-chan nation","Comedy + serious"], hotTake:"Gintama's serious arcs hit harder than any pure battle anime", avatarType:"flame", colors:{hair:"#aaaaaa",iris:"#4488ff"}, anthem:{title:"Pray",artist:"Tommy heavenly6",search:"Pray Tommy heavenly6 Gintama"} },
+  { name:"Kosei Hirano", age:24, watching:"Hunter x Hunter", live:true, ep:"EP.116", tags:["HxH","Killua fan","Chimera Ant arc"], hotTake:"The Chimera Ant arc is the greatest arc in anime history", avatarType:"dark", colors:{hair:"#ffffff",iris:"#6600ff"}, anthem:{title:"Ohayou",artist:"Masatoshi Ono",search:"Ohayou Masatoshi Ono Hunter x Hunter"} },
+  { name:"Saki Fujimoto", age:20, watching:"Cardcaptor Sakura", live:false, ep:"EP.30", tags:["Magical girl OG","CLAMP fan","Nostalgia core"], hotTake:"Cardcaptor Sakura invented the magical girl genre as we know it", avatarType:"warm", colors:{hair:"#ddaaff",iris:"#bb66ff"}, anthem:{title:"Catch You Catch Me",artist:"Gumi",search:"Catch You Catch Me Cardcaptor Sakura"} },
+  { name:"Tetsu Kojima", age:27, watching:"Psycho-Pass", live:true, ep:"EP.11", tags:["Cyberpunk","Dystopia","Urobuchi fan"], hotTake:"Psycho-Pass Season 1 is peak science fiction anime", avatarType:"silver", colors:{hair:"#446688",iris:"#88aacc"}, anthem:{title:"abnormalize",artist:"Ling Tosite Sigure",search:"abnormalize Ling Tosite Sigure Psycho Pass"} },
+  { name:"Noa Tachibana", age:21, watching:"Nana", live:false, ep:"EP.25", tags:["Josei","Punk rock fan","Real emotions"], hotTake:"Nana is the most emotionally honest anime ever made", avatarType:"flame", colors:{hair:"#000000",iris:"#cc0033"}, anthem:{title:"Rose",artist:"Anna Tsuchiya",search:"Rose Anna Tsuchiya Nana anime"} },
+  { name:"Ren Fujiwara", age:25, watching:"Dandadan", live:true, ep:"EP.04", tags:["New gen","Sci-fi horror","MAPPA hype"], hotTake:"Dandadan is the freshest anime to come out in years", avatarType:"dark", colors:{hair:"#0044cc",iris:"#00aaff"}, anthem:{title:"otonoke",artist:"Creepy Nuts",search:"otonoke Creepy Nuts Dandadan"} },
 ];
 
 let currentIdx = 0;
@@ -1566,15 +1577,7 @@ function renderCards() {
   const stack = document.getElementById('card-stack');
   stack.innerHTML = '';
 
-  const toShow = profiles.slice(currentIdx, currentIdx + 3);
-  if (toShow.length === 0) {
-    stack.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);font-family:var(--mono);font-size:13px;gap:12px;">
-      <div style="font-size:32px;">✦</div>
-      <div>// no more profiles</div>
-      <div style="font-size:11px;">Check back tomorrow for new arcs</div>
-    </div>`;
-    return;
-  }
+  const toShow = [0, 1, 2].map(i => profiles[(currentIdx + i) % profiles.length]);
 
   // Render back cards first
   for (let i = toShow.length - 1; i >= 0; i--) {
@@ -1671,7 +1674,7 @@ function swipeCard(direction) {
   front.classList.add(cls);
 
   const isMatch = direction === 'right' || direction === 'up';
-  const profile = profiles[currentIdx];
+  const profile = profiles[currentIdx % profiles.length];
 
   setTimeout(() => {
     currentIdx++;
@@ -1684,10 +1687,34 @@ function swipeCard(direction) {
   }, 340);
 }
 
-// ── MATCH MODAL + ANTHEM ────────────���──────────────
+// ── MATCH MODAL + ANTHEM ────────────────────────────
 let anthemAudio = null;
 let anthemTimer = null;
 const ANTHEM_DURATION = 10;
+
+// Unlock audio context on first touch (required on iOS)
+function unlockAudio() {
+  const a = new Audio();
+  a.play().catch(() => {});
+}
+document.addEventListener('touchstart', unlockAudio, { once: true });
+document.addEventListener('mousedown', unlockAudio, { once: true });
+
+// Pre-fetch iTunes preview URLs for all profiles on load
+async function prefetchAnthems() {
+  const fetches = profiles.map(async (p) => {
+    if (!p.anthem) return;
+    try {
+      const q = encodeURIComponent(p.anthem.search || `${p.anthem.title} ${p.anthem.artist}`);
+      const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5`);
+      const data = await res.json();
+      const track = data.results.find(r => r.previewUrl);
+      if (track) p.anthem.previewUrl = track.previewUrl;
+    } catch(e) {}
+  });
+  await Promise.all(fetches);
+}
+prefetchAnthems();
 
 function showMatch(profile) {
   const modal = document.getElementById('match-modal');
@@ -1699,28 +1726,14 @@ function showMatch(profile) {
     document.getElementById('anthem-artist').textContent = profile.anthem.artist;
     document.getElementById('anthem-player').style.display = 'flex';
     document.getElementById('anthem-progress-wrap').style.display = 'block';
-    fetchAndPlayAnthem(profile.anthem);
+    if (profile.anthem.previewUrl) {
+      playAnthem(profile.anthem.previewUrl);
+    } else {
+      document.getElementById('anthem-timer').textContent = '–';
+    }
   } else {
     document.getElementById('anthem-player').style.display = 'none';
     document.getElementById('anthem-progress-wrap').style.display = 'none';
-  }
-}
-
-async function fetchAndPlayAnthem(anthem) {
-  const timerEl = document.getElementById('anthem-timer');
-  timerEl.textContent = '...';
-  try {
-    const q = encodeURIComponent(anthem.search || `${anthem.title} ${anthem.artist}`);
-    const res = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&limit=5&country=US`);
-    const data = await res.json();
-    const track = data.results.find(r => r.previewUrl);
-    if (track && track.previewUrl) {
-      playAnthem(track.previewUrl);
-    } else {
-      timerEl.textContent = '–';
-    }
-  } catch(e) {
-    timerEl.textContent = '–';
   }
 }
 
@@ -1728,7 +1741,6 @@ function playAnthem(url) {
   stopAnthem();
 
   anthemAudio = new Audio(url);
-  anthemAudio.crossOrigin = 'anonymous';
   anthemAudio.volume = 0.7;
   anthemAudio.play().catch(() => {});
 
