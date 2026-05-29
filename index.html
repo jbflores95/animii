@@ -1692,17 +1692,28 @@ function swipeCard(direction) {
   const front = document.querySelector('.profile-card.front');
   if (!front) return;
 
-  const cls = direction === 'left' ? 'swipe-left' : direction === 'right' ? 'swipe-right' : 'swipe-up';
-  front.classList.add(cls);
-
-  const isMatch = direction === 'right' || direction === 'up';
   const profile = profiles[currentIdx % profiles.length];
+  const isLike = direction === 'right' || direction === 'up';
+
+  // Decide match result NOW — while still inside the user gesture
+  const isMatch = isLike && Math.random() > 0.35;
+
+  front.classList.add(direction === 'left' ? 'swipe-left' : direction === 'right' ? 'swipe-right' : 'swipe-up');
+
+  // ✅ iOS requires audio.play() to be called synchronously in the gesture handler.
+  // Starting it here — before the setTimeout — satisfies that requirement.
+  if (isMatch && profile?.anthem?.previewUrl) {
+    stopAnthem();
+    anthemAudio = new Audio(profile.anthem.previewUrl);
+    anthemAudio.volume = 0.7;
+    anthemAudio.play().catch(() => {});
+  }
 
   setTimeout(() => {
     currentIdx++;
     renderCards();
-    if (isMatch && profile && Math.random() > 0.35) {
-      showMatch(profile);
+    if (isMatch && profile) {
+      showMatchUI(profile);
       matched.push(profile);
       renderMatches();
     }
@@ -1713,14 +1724,6 @@ function swipeCard(direction) {
 let anthemAudio = null;
 let anthemTimer = null;
 const ANTHEM_DURATION = 10;
-
-// Unlock audio context on first touch (required on iOS)
-function unlockAudio() {
-  const a = new Audio();
-  a.play().catch(() => {});
-}
-document.addEventListener('touchstart', unlockAudio, { once: true });
-document.addEventListener('mousedown', unlockAudio, { once: true });
 
 // Pre-fetch iTunes preview URLs for all profiles on load
 async function prefetchAnthems() {
@@ -1738,7 +1741,8 @@ async function prefetchAnthems() {
 }
 prefetchAnthems();
 
-function showMatch(profile) {
+// Show modal UI — audio is already playing from swipeCard gesture
+function showMatchUI(profile) {
   const modal = document.getElementById('match-modal');
   document.getElementById('modal-sub').innerHTML = `You and <strong>${profile.name}</strong> both liked each other`;
   modal.classList.add('show');
@@ -1748,8 +1752,9 @@ function showMatch(profile) {
     document.getElementById('anthem-artist').textContent = profile.anthem.artist;
     document.getElementById('anthem-player').style.display = 'flex';
     document.getElementById('anthem-progress-wrap').style.display = 'block';
-    if (profile.anthem.previewUrl) {
-      playAnthem(profile.anthem.previewUrl);
+    // Audio is already playing — just run the progress bar & timer
+    if (anthemAudio) {
+      startAnthemUI();
     } else {
       document.getElementById('anthem-timer').textContent = '–';
     }
@@ -1759,13 +1764,8 @@ function showMatch(profile) {
   }
 }
 
-function playAnthem(url) {
-  stopAnthem();
-
-  anthemAudio = new Audio(url);
-  anthemAudio.volume = 0.7;
-  anthemAudio.play().catch(() => {});
-
+// Visual-only: progress bar + countdown (audio already started)
+function startAnthemUI() {
   const bar = document.getElementById('anthem-progress-bar');
   const timerEl = document.getElementById('anthem-timer');
   const bars = document.getElementById('anthem-bars');
@@ -1774,12 +1774,11 @@ function playAnthem(url) {
   let elapsed = 0;
   bar.style.transition = 'none';
   bar.style.width = '0%';
-
-  // Force reflow then start smooth transition
   bar.getBoundingClientRect();
   bar.style.transition = `width ${ANTHEM_DURATION}s linear`;
   bar.style.width = '100%';
 
+  timerEl.textContent = `0:${String(ANTHEM_DURATION).padStart(2,'0')}`;
   anthemTimer = setInterval(() => {
     elapsed++;
     const remaining = ANTHEM_DURATION - elapsed;
