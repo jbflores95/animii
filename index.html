@@ -1697,18 +1697,27 @@ const ANTHEM_DURATION = 10;
 // and revokes its activation. Every async play() after that fails. A looping element
 // is NEVER in "ended" state, so iOS keeps activation permanently on this element.
 const SILENT_URL = (() => {
-  const rate = 8000, n = Math.floor(rate * 1.5);
-  const b = new Uint8Array(44 + n);
+  // 16-bit signed PCM mono WAV, 1.5 s at 8 kHz.
+  // 8-bit PCM has known iOS Safari compatibility issues; 16-bit is universally supported.
+  // Silence in 16-bit signed PCM = 0x0000, which is the Uint8Array default — no fill needed.
+  const rate = 8000, bps = 16, ch = 1;
+  const samples = Math.floor(rate * 1.5);          // 12000 samples
+  const dataSize = samples * ch * (bps >>> 3);     // 24000 bytes
+  const b = new Uint8Array(44 + dataSize);
   const dv = new DataView(b.buffer);
-  [82,73,70,70].forEach((v,i) => b[i] = v);            // "RIFF"
-  dv.setUint32(4, 36 + n, true);
-  [87,65,86,69,102,109,116,32].forEach((v,i) => b[8+i] = v); // "WAVEfmt "
-  dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
-  dv.setUint32(24,rate,true); dv.setUint32(28,rate,true);
-  dv.setUint16(32,1,true); dv.setUint16(34,8,true);
-  [100,97,116,97].forEach((v,i) => b[36+i] = v);        // "data"
-  dv.setUint32(40, n, true);
-  b.fill(128, 44); // 128 = silence in unsigned 8-bit PCM
+  b.set([82,73,70,70], 0);                         // "RIFF"
+  dv.setUint32(4, 36 + dataSize, true);
+  b.set([87,65,86,69,102,109,116,32], 8);          // "WAVEfmt "
+  dv.setUint32(16, 16, true);                      // fmt chunk size
+  dv.setUint16(20, 1, true);                       // PCM
+  dv.setUint16(22, ch, true);                      // 1 channel
+  dv.setUint32(24, rate, true);                    // sample rate
+  dv.setUint32(28, rate * ch * (bps >>> 3), true); // byte rate = 16000
+  dv.setUint16(32, ch * (bps >>> 3), true);        // block align = 2
+  dv.setUint16(34, bps, true);                     // 16 bits/sample
+  b.set([100,97,116,97], 36);                      // "data"
+  dv.setUint32(40, dataSize, true);
+  // data bytes stay 0x00 (16-bit signed PCM silence)
   return URL.createObjectURL(new Blob([b], {type:'audio/wav'}));
 })();
 
@@ -1757,16 +1766,17 @@ function swipeCard(direction) {
 
   if (isLike) {
     if (isMatch && profile?.anthem?.previewUrl) {
-      // URL is ready — play the song right now inside this gesture
+      // URL ready — stop the loop cleanly, then play the real song in this gesture
+      anthemEl.pause();
       anthemEl.loop = false;
+      anthemEl.currentTime = 0;
       anthemEl.src = profile.anthem.previewUrl;
+      anthemEl.play().catch(() => {});
     } else {
-      // No URL yet (or not a match) — keep the silent loop alive so the async
-      // play() in showMatchUI fires on an already-active element
-      anthemEl.loop = true;
-      anthemEl.src = SILENT_URL;
+      // No URL yet / non-match — ensure the silent loop is alive (restarts if paused)
+      if (anthemEl.paused) anthemEl.loop = true;
+      anthemEl.play().catch(() => {});
     }
-    anthemEl.play().catch(() => {});
   }
 
   const urlReadyAtSwipeTime = isMatch && !!profile?.anthem?.previewUrl;
@@ -1809,7 +1819,9 @@ async function showMatchUI(profile, audioReady) {
     await fetchAnthemFor(profile);
     if (myToken !== matchToken) return;
     if (profile.anthem.previewUrl) {
+      anthemEl.pause();
       anthemEl.loop = false;
+      anthemEl.currentTime = 0;
       anthemEl.src = profile.anthem.previewUrl;
       anthemEl.play().catch(() => {});
     }
@@ -1851,9 +1863,10 @@ function startAnthemUI() {
 function stopAnthem() {
   anthemEl.pause();
   anthemEl.loop = true;
+  anthemEl.currentTime = 0;
   anthemEl.src = SILENT_URL;
-  // No play() here — we're outside a gesture (could be the 10s timer).
-  // The loop restarts automatically on the next swipe gesture.
+  anthemEl.play().catch(() => {}); // restart silent loop; may fail from timer context but
+  // swipeCard will restart it on the next gesture if this play() is rejected
   if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; }
   const bars = document.getElementById('anthem-bars');
   if (bars) bars.classList.add('paused');
