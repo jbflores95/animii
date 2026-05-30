@@ -1689,26 +1689,37 @@ function setupDrag(card, idx) {
 
 // ── MATCH MODAL + ANTHEM ────────────────────────────
 let anthemTimer = null;
-let matchToken = 0; // incremented each match; stale async callbacks abort when token changes
+let matchToken = 0;
 const ANTHEM_DURATION = 10;
 
-// Smallest valid silent WAV (44 bytes). Used so anthemEl.play() always succeeds
-// on the unlock call — a no-src element throws DOMException and iOS denies activation.
-const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+// Build a 1.5-second silent WAV as a blob URL.
+// WHY loop + blob: a 44-byte data-URI WAV ends in ~0ms → iOS marks the element "ended"
+// and revokes its activation. Every async play() after that fails. A looping element
+// is NEVER in "ended" state, so iOS keeps activation permanently on this element.
+const SILENT_URL = (() => {
+  const rate = 8000, n = Math.floor(rate * 1.5);
+  const b = new Uint8Array(44 + n);
+  const dv = new DataView(b.buffer);
+  [82,73,70,70].forEach((v,i) => b[i] = v);            // "RIFF"
+  dv.setUint32(4, 36 + n, true);
+  [87,65,86,69,102,109,116,32].forEach((v,i) => b[8+i] = v); // "WAVEfmt "
+  dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+  dv.setUint32(24,rate,true); dv.setUint32(28,rate,true);
+  dv.setUint16(32,1,true); dv.setUint16(34,8,true);
+  [100,97,116,97].forEach((v,i) => b[36+i] = v);        // "data"
+  dv.setUint32(40, n, true);
+  b.fill(128, 44); // 128 = silence in unsigned 8-bit PCM
+  return URL.createObjectURL(new Blob([b], {type:'audio/wav'}));
+})();
 
-// One persistent element. iOS keeps "user-activated" state on the same element
-// across src changes. Creating new Audio() each time loses that state.
-const anthemEl = new Audio(SILENT);
-anthemEl.volume = 0.7;
-document.body.appendChild(anthemEl); // in DOM = more reliable activation on iOS
+const anthemEl = new Audio(SILENT_URL);
+anthemEl.loop = true; // keep looping so the element never "ends" and iOS never revokes activation
+document.body.appendChild(anthemEl);
 
-// On first touch: play the silent WAV so iOS grants permanent activation to anthemEl.
-// After this, anthemEl.play() works from ANY context — setTimeout, async, anywhere.
+// On first touch, start the silent loop. From this point on anthemEl is always playing
+// (silence), so any future play() call — gesture OR async — is allowed by iOS.
 function unlockAnthemEl() {
-  anthemEl.play().then(() => {
-    anthemEl.pause();
-    anthemEl.currentTime = 0;
-  }).catch(() => {});
+  anthemEl.play().catch(() => {});
 }
 document.addEventListener('touchstart', unlockAnthemEl, { once: true });
 document.addEventListener('mousedown',  unlockAnthemEl, { once: true });
@@ -1744,10 +1755,17 @@ function swipeCard(direction) {
 
   front.classList.add(direction === 'left' ? 'swipe-left' : direction === 'right' ? 'swipe-right' : 'swipe-up');
 
-  // Call play() inside the gesture on every like. Real URL if ready, SILENT otherwise.
-  // No explicit load() — iOS handles the src-change implicitly and more reliably mid-gesture.
   if (isLike) {
-    anthemEl.src = (isMatch && profile?.anthem?.previewUrl) ? profile.anthem.previewUrl : SILENT;
+    if (isMatch && profile?.anthem?.previewUrl) {
+      // URL is ready — play the song right now inside this gesture
+      anthemEl.loop = false;
+      anthemEl.src = profile.anthem.previewUrl;
+    } else {
+      // No URL yet (or not a match) — keep the silent loop alive so the async
+      // play() in showMatchUI fires on an already-active element
+      anthemEl.loop = true;
+      anthemEl.src = SILENT_URL;
+    }
     anthemEl.play().catch(() => {});
   }
 
@@ -1786,15 +1804,13 @@ async function showMatchUI(profile, audioReady) {
   document.getElementById('anthem-progress-wrap').style.display = 'block';
 
   if (!audioReady) {
-    // URL wasn't ready at swipe time — fetch it now and play.
-    // anthemEl is activated from the gesture, so play() works here even though it's async.
+    // URL wasn't ready at swipe time. The silent loop is running, so anthemEl is active.
+    // Fetch the URL now — play() works from async context because the element never ended.
     await fetchAnthemFor(profile);
-    if (myToken !== matchToken) return; // user already moved to next match, abort
+    if (myToken !== matchToken) return;
     if (profile.anthem.previewUrl) {
-      anthemEl.pause();
-      anthemEl.currentTime = 0;
+      anthemEl.loop = false;
       anthemEl.src = profile.anthem.previewUrl;
-      anthemEl.load();
       anthemEl.play().catch(() => {});
     }
   }
@@ -1834,11 +1850,10 @@ function startAnthemUI() {
 
 function stopAnthem() {
   anthemEl.pause();
-  // Reset to SILENT so the element is always in the same clean state (HAVE_NOTHING)
-  // going into the next match. Without this, a fully-buffered element (HAVE_ENOUGH_DATA)
-  // behaves differently than an empty one when we call play() in the next gesture.
-  anthemEl.src = SILENT;
-  anthemEl.load();
+  anthemEl.loop = true;
+  anthemEl.src = SILENT_URL;
+  // No play() here — we're outside a gesture (could be the 10s timer).
+  // The loop restarts automatically on the next swipe gesture.
   if (anthemTimer) { clearInterval(anthemTimer); anthemTimer = null; }
   const bars = document.getElementById('anthem-bars');
   if (bars) bars.classList.add('paused');
